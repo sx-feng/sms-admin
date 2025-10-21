@@ -1,4 +1,4 @@
-// src/api/admin.js
+﻿// src/api/admin.js
 import { request } from '@/utils/request.js'
 
 // ==================== 登录与账户 ====================
@@ -67,3 +67,16 @@ export const getStatistics = () => request(0, '/api/admin/statistics')
 // 获取用户公告列表
 // GET /api/admin/get/user/notice
 export const getUserNotice = () => request(0, '/api/admin/get/user/notice')
+
+// ==================== 项目管理 ====================
+// 分页查询项目列表
+export const pageProjects = (params) => request(0, '/api/project/find/all', params, true)
+
+// 新增项目
+export const pageAdd = (params) => request(1, '/api/project/add', params )
+
+// 编辑项目
+export const pageUpdate = (params) => request(1, '/api/project/update', params)
+
+// 删除项目
+export const pageDelete = (id) => request(1, `/api/project/delete/by-id/${id}`)

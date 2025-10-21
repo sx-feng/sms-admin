@@ -24,14 +24,13 @@
           <el-switch v-model="row.isAgent" @change="toggleAgent(row)" />
         </template>
       </el-table-column>
-      <!-- Todo -->
-      <!-- <el-table-column prop="projectPrices" label="项目价格JSON" min-width="200">
+      <el-table-column prop="projectPrices" label="项目价格JSON" min-width="220">
         <template #default="{ row }">
-          <el-tooltip placement="top" :content="JSON.stringify(row.priceJson)">
-            <el-text truncated>{{ JSON.stringify(row.priceJson) }}</el-text>
+          <el-tooltip placement="top" :content="projectPricesString(row)">
+            <el-text truncated>{{ projectPricesString(row) }}</el-text>
           </el-tooltip>
         </template>
-      </el-table-column> -->
+      </el-table-column>
 
       <el-table-column label="操作" width="320">
         <template #default="{ row }">
@@ -75,6 +74,17 @@ const editDialogVisible = ref(false)
 const rechargeDialogVisible = ref(false)
 const recordDialogVisible = ref(false)
 const parentId = ref('')
+
+function projectPricesString(row) {
+  const val = row?.projectPrices ?? row?.priceJson
+  if (val == null) return '-'
+  if (typeof val === 'string') return val
+  try {
+    return JSON.stringify(val)
+  } catch (e) {
+    return String(val)
+  }
+}
 
 async function getUserList() {
   loading.value = true
@@ -131,6 +141,7 @@ onMounted(getUserList)
 <style scoped>
 .user-manage {
   padding: 20px;
+  border: 2px solid #6abae9;
 }
 .page-header {
   display: flex;

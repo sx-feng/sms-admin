@@ -187,7 +187,7 @@ const shortcuts = [
   { label: '用户管理', path: '/usermanage', icon: User },
   { label: '项目配置', path: '/projectmanage', icon: Tools },
   { label: '系统设置', path: '/systemconfig', icon: Setting },
-  { label: '日志查看', path: '/errorlogs ', icon: Document },
+  { label: '日志查看', path: '/errorlogs', icon: Document },
 ]
 
 // 跳转
@@ -202,6 +202,7 @@ function go(path) {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
+  border: 2px solid #6abae9;
 }
 
 
