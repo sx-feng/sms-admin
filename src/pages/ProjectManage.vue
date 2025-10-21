@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <!-- 页面标题 -->
     <h2>项目配置页</h2>
@@ -114,6 +114,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import PaginationBar from '@/components/PaginationBar.vue'
+import { pageProjects } from '@/api/admin'
 import axios from 'axios'
 
 // 数据源
@@ -162,13 +163,16 @@ function openDialog(row = null) {
 // 获取列表
 async function fetchList() {
   try {
-    const res = await axios.get('/api/admin/project/page', {
-      params: { page: page.value, size: pageSize, keyword: keyword.value }
-    })
-    projectList.value = res.data?.data?.records || []
-    total.value = res.data?.data?.total || 0
+    const res = await pageProjects({ page: page.value, size: pageSize, keyword: keyword.value })
+    if (!res || res.ok === false) {
+      ElMessage.error(res?.message || '获取项目列表失败')
+      return
+    }
+    const data = res.data || {}
+    projectList.value = data.records || []
+    total.value = data.total || 0
   } catch (err) {
-    console.error(err)
+    ElMessage.error('获取项目列表失败')
   }
 }
 
@@ -213,3 +217,4 @@ onMounted(fetchList)
   margin-bottom: 10px;
 }
 </style>
+
