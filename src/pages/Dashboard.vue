@@ -173,6 +173,8 @@ const shortcuts = [
   { label: '项目配置', path: '/projectmanage', icon: Tools },
   { label: '系统设置', path: '/systemconfig', icon: Setting },
   { label: '日志查看', path: '/errorlogs', icon: Document },
+  { label: '号码管理', path: '/usernumbermanage', icon: TrendCharts },
+  { label: '账单管理', path: '/billManage', icon: TrendCharts }
 ]
 
 // 跳转

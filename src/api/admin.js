@@ -89,3 +89,13 @@ export const getProjectAuthEnums = () => request(0, '/api/admin/enum/auth-types'
 
 //查询项目配置接口请求参数方式枚举信息
 export const getProjectRequestMethodEnums = () => request(0, '/api/admin/enum/request-types')
+
+
+//号码表
+export const pageNumberList = (params) => request(0, '/api/admin/viewAllNumbers', params, true)
+
+// 查看全局账本记录
+//   GET /api/admin/viewAllLedger
+//   接口ID：362860098
+//   接口地址：https://app.apifox.com/link/project/7230479/apis/api-362860098
+export const pageAllLedger = (params) => request(0, '/api/admin/viewAllLedger', params, true)

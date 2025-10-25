@@ -42,6 +42,16 @@ const routes = [
        path:'/errorlogs',
     name:'ErrorLogs',
     component:ErrorLogs
+  },
+  {
+    path:"/usernumbermanage",
+    name:"UserNumberManage",
+    component: () => import('@/pages/NumberManage.vue')
+  },
+  {
+    path:'/billManage',
+    name:'BillManage',
+    component: () => import('@/pages/BillManage.vue')
   }
 ]
 

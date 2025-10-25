@@ -304,7 +304,7 @@ function openDialog(row = null) {
 // 获取列表
 async function fetchList() {
   try {
-    const res = await pageProjects({ page: page.value, size: pageSize, keyword: keyword.value })
+    const res = await pageProjects({ pageNum: page.value, pageSize: pageSize, keyword: keyword.value })
     if (!res || res.ok === false) {
       ElMessage.error(res?.message || '获取项目列表失败')
       return
