@@ -1,54 +1,44 @@
 <template>
   <div class="dashboard">
     <NoticeBar />
-
-    <!-- 🔔 公告栏 -->
-    
-
-    <!-- 💰 统计卡片区域 -->
-<div class="stats-row">
-  <el-card
-    v-for="item in [
-      { label: '💰 总余额', value: stats.totalPrice },
-      { label: '👥 用户数', value: stats.totalUsers },
-      { label: '🔢 总号码数', value: stats.totalNumbersReceived },
-      { label: '📈 总体回码率', value: stats.overallCodeRate }
-    ]"
-    :key="item.label"
-    class="stat-card"
-    shadow="hover"
-  >
-    <div class="stat-value">
-      {{ typeof item.value === 'number' ? item.value.toFixed(2) : item.value }}
+    <div class="stats-row">
+      <el-card v-for="item in [
+        { label: '💰 总余额', value: stats.totalPrice },
+        { label: '👥 用户数', value: stats.totalUsers },
+        { label: '🔢 总号码数', value: stats.totalNumbersReceived },
+        { label: '📈 总体回码率', value: stats.overallCodeRate }
+      ]" :key="item.label" class="stat-card" shadow="hover">
+        <div class="stat-value">
+          {{ typeof item.value === 'number' ? item.value.toFixed(2) : item.value }}
+        </div>
+        <div class="stat-label">{{ item.label }}</div>
+      </el-card>
     </div>
-    <div class="stat-label">{{ item.label }}</div>
-  </el-card>
-</div>
-
-
-
-    <!-- 📈 折线图区域 -->
     <el-card class="chart-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon><TrendCharts /></el-icon>
+          <el-icon>
+            <TrendCharts />
+          </el-icon>
           <span>每日号码 / 验证码数量趋势</span>
         </div>
       </template>
       <v-chart :option="chartOption" class="chart" autoresize />
     </el-card>
-
-    <!-- 🚀 快捷入口 -->
     <el-card class="shortcut-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon><Menu /></el-icon>
+          <el-icon>
+            <Menu />
+          </el-icon>
           <span>快捷入口</span>
         </div>
       </template>
       <div class="shortcut-grid">
         <el-button v-for="(btn, i) in shortcuts" :key="i" type="primary" @click="go(btn.path)">
-          <el-icon :size="18" class="mr-1"><component :is="btn.icon" /></el-icon>
+          <el-icon :size="18" class="mr-1">
+            <component :is="btn.icon" />
+          </el-icon>
           {{ btn.label }}
         </el-button>
       </div>
@@ -67,40 +57,43 @@ import { CanvasRenderer } from "echarts/renderers"
 import { LineChart } from "echarts/charts"
 import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from "echarts/components"
 import VChart from "vue-echarts"
-import { getStatistics, viewAllNumbers } from '@/api/admin.js'
+import { getStatistics, getDailyStats } from '@/api/admin.js'
 import { ElMessage } from 'element-plus'
+
 // 注册 ECharts 模块
 use([CanvasRenderer, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 const router = useRouter()
 
-
-
-// 访问所有数据
 // 统计卡片
 const stats = ref({
-  totalBalance: 0,
+  totalPrice: 0,
   totalUsers: 0,
   totalNumbersReceived: 0,
   overallCodeRate: '0%'
 })
+
 async function loadStats() {
-  const res = await getStatistics ()
-  console.log(res,"主页面的所有数据")
-  if (res.code===200) {
-     const d = res.data
-    stats.value = {
-      totalPrice: d.totalPrice || 0, // ✅ 用接口字段 totalPrice
-      totalUsers: d.totalUsers || 0,
-      totalNumbersReceived: d.totalNumbersReceived || 0,
-      overallCodeRate: d.overallCodeRate || '0%'
+  try {
+    const res = await getStatistics()
+    console.log(res, "主页面的所有数据")
+    if (res.code === 200) {
+      const d = res.data
+      stats.value = {
+        totalPrice: d.totalPrice || 0,
+        totalUsers: d.totalUsers || 0,
+        totalNumbersReceived: d.totalNumbersReceived || 0,
+        overallCodeRate: d.overallCodeRate || '0%'
+      }
+      // ElMessage.success(res.message) // 建议在非关键数据加载时，成功提示可以省略，避免过多打扰
+    } else {
+      ElMessage.error(res.message || '加载统计数据失败')
     }
-    ElMessage.success(res.message)
-  } else {
-    ElMessage.error(res.message || '加载配置失败')
+  } catch (error) {
+    ElMessage.error('加载统计数据时发生网络错误')
+    console.error(error)
   }
 }
-
 
 // 折线图数据
 const chartOption = ref({
@@ -125,62 +118,54 @@ const chartOption = ref({
   ]
 })
 
-// 模拟加载折线图数据
-onMounted(() => { loadChart(7); loadStats() })
-
-// 折线图：按天聚合“取号/回码”
 async function loadChart(days = 7) {
-  const today = new Date()
-  const dayKeys = []
-  const labels = []
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(today.getDate() - i)
-    const y = d.getFullYear()
-    const m = `${d.getMonth() + 1}`.padStart(2, '0')
-    const dd = `${d.getDate()}`.padStart(2, '0')
-    dayKeys.push(`${y}-${m}-${dd}`)
-    labels.push(`${m}-${dd}`)
-  }
-
-  const countFetch = Object.fromEntries(dayKeys.map(k => [k, 0]))
-  const countReply = Object.fromEntries(dayKeys.map(k => [k, 0]))
-
-  const startDate = dayKeys[0] + ' 00:00:00'
-  const endDate = dayKeys[dayKeys.length - 1] + ' 23:59:59'
-  const res = await viewAllNumbers({ startDate, endDate })
-  const list = Array.isArray(res?.data) ? res.data : (res?.data?.list || [])
-
-  const toKey = (v) => {
-    if (!v) return ''
-    const d = new Date(v)
-    if (Number.isNaN(d.getTime())) return ''
-    const m = `${d.getMonth() + 1}`.padStart(2, '0')
-    const dd = `${d.getDate()}`.padStart(2, '0')
-    return `${d.getFullYear()}-${m}-${dd}`
-  }
-  const isReplied = (it) => {
-    const s = (it.status || it.state || '').toString().toLowerCase()
-    if (['success', 'ok', 'done', 'replied'].includes(s)) return true
-    if (it.hasCode === true) return true
-    if (it.code || it.smsCode || it.verifyCode) return true
-    return false
-  }
-
-  for (const it of list) {
-    const cKey = toKey(it.createdAt || it.createTime || it.created_at || it.time)
-    if (cKey && cKey in countFetch) countFetch[cKey]++
-    if (isReplied(it)) {
-      const rKey0 = toKey(it.updatedAt || it.updateTime || it.updated_at || it.replyTime)
-      const rKey = rKey0 || cKey
-      if (rKey && rKey in countReply) countReply[rKey]++
+  try {
+    const res = await getDailyStats({ days })
+    if (res.code !== 200 || !Array.isArray(res.data)) {
+      ElMessage.error(res.message || '加载图表数据失败')
+      return
     }
-  }
 
-  chartOption.value.xAxis.data = labels
-  chartOption.value.series[0].data = dayKeys.map(k => countFetch[k])
-  chartOption.value.series[1].data = dayKeys.map(k => countReply[k])
+    // 将返回的数组数据转换为 Map 以便按日期快速查找
+    const statsMap = new Map(res.data.map(item => [item.date, item]))
+
+    // 生成最近 'days' 天的日期标签，确保 X 轴的连续性
+    const labels = []
+    const dateKeys = []
+    const today = new Date()
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today)
+      d.setDate(today.getDate() - i)
+      const y = d.getFullYear()
+      const m = `${d.getMonth() + 1}`.padStart(2, '0')
+      const dd = `${d.getDate()}`.padStart(2, '0')
+      dateKeys.push(`${y}-${m}-${dd}`)
+      labels.push(`${m}-${dd}`)
+    }
+
+    // 根据日期序列，从 Map 中获取数据，如果某天没有数据则补 0
+    const numberCounts = dateKeys.map(key => statsMap.get(key)?.numberCount || 0)
+    // 假设 API 返回的数据中包含 codeCount 字段代表回码数
+    const codeCounts = dateKeys.map(key => statsMap.get(key)?.codeCount || 0)
+
+    // 更新图表配置
+    chartOption.value.xAxis.data = labels
+    chartOption.value.series[0].data = numberCounts
+    chartOption.value.series[1].data = codeCounts
+
+  } catch (error) {
+    console.error("加载图表数据时出错:", error)
+    ElMessage.error('加载图表数据时发生网络错误')
+  }
 }
+
+
+// 页面加载时执行
+onMounted(() => {
+  loadStats()
+  loadChart(7) // 默认加载最近7天的数据
+})
+
 
 // 快捷入口
 const shortcuts = [
@@ -239,8 +224,17 @@ function go(path) {
   width: 100%;
 }
 
-.shortcut-card { min-height: 300px; }
-.shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); grid-auto-rows: 44px; gap: 10px; align-content: start; }
+.shortcut-card {
+  min-height: 300px;
+}
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-auto-rows: 44px;
+  gap: 10px;
+  align-content: start;
+}
 
 .mr-1 {
   margin-right: 6px;

@@ -6,42 +6,41 @@
     <!-- 操作区域 -->
     <div class="action-bar">
       <el-button type="primary" @click="openDialog()">新增项目</el-button>
-      <el-input
+      <!-- <el-input
         v-model="keyword"
-        placeholder="搜索域名 / 项目ID"
+        placeholder="搜索项目名称 / ID / 域名"
         clearable
         style="width: 250px; margin-left: 10px"
         @input="fetchList"
-      />
+      /> -->
     </div>
 
-    <!-- 表格展示 -->
+    <!-- 表格展示 (已更新) -->
     <el-table
-      :data="projectList"
+      :data="tableData"
       border
       style="width: 100%; margin-top: 15px"
     >
-      <el-table-column prop="id" label="项目ID" width="90" />
-      <el-table-column prop="projectId" label="项目标识" width="110" />
-      <el-table-column prop="lineId" label="线路ID" width="90" />
-      <el-table-column prop="domain" label="域名" />
-      <el-table-column prop="getNumberRoute" label="获取手机号路由" />
-      <el-table-column prop="getCodeRoute" label="获取验证码路由" />
-      <el-table-column prop="costPrice" label="成本价" width="90" />
-      <el-table-column prop="priceMin" label="最低价" width="90" />
-      <el-table-column prop="priceMax" label="最高价" width="90" />
-      <el-table-column prop="codeTimeout" label="超时(s)" width="80" />
-      <el-table-column prop="filterApi" label="筛选API" />
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag type="success" v-if="row.status === 1">启用</el-tag>
-          <el-tag type="info" v-else>禁用</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
-          <el-button size="small" type="primary" @click="openDialog(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="deleteProject(row.id)">删除</el-button>
+      <el-table-column
+        v-for="column in tableColumns"
+        :key="column.prop"
+        :prop="column.prop"
+        :label="column.label"
+        :width="column.width"
+        show-overflow-tooltip
+      >
+        <!-- 使用插槽处理特殊列的展示 -->
+        <template v-if="column.slot" #default="{ row }">
+          <!-- 状态列 -->
+          <div v-if="column.slot === 'status'">
+            <el-tag type="success" v-if="row.status">启用</el-tag>
+            <el-tag type="info" v-else>禁用</el-tag>
+          </div>
+          <!-- 操作列 -->
+          <div v-if="column.slot === 'actions'">
+            <el-button size="small" type="primary" @click="openDialog(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="deleteProject(row.id)">删除</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -54,130 +53,44 @@
       @change="fetchList"
     />
 
-    <!-- 弹窗：新增/编辑项目 -->
+    <!-- 弹窗：新增/编辑项目 (已更新为两栏布局) -->
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑项目' : '新增项目'"
-      width="750px"
+      width="1000px" 
       destroy-on-close
     >
-      <el-form :model="form" label-width="150px">
-
-        <!-- 🟦 基础配置 -->
-        <el-divider>基础配置</el-divider>
-
-        <el-form-item label="项目标识(projectId)">
-          <el-input v-model="form.projectId" placeholder="例如 id0001" />
-        </el-form-item>
-
-        <el-form-item label="线路ID">
-          <el-input v-model="form.lineId" placeholder="请输入线路ID" />
-        </el-form-item>
-
-        <el-form-item label="域名">
-          <el-input v-model="form.domain" placeholder="例如：https://api.xxx.com" />
-        </el-form-item>
-
-        <el-form-item label="获取手机号路由">
-          <el-input v-model="form.getNumberRoute" placeholder="/api/getNumber" />
-        </el-form-item>
-
-        <el-form-item label="获取验证码路由">
-          <el-input v-model="form.getCodeRoute" placeholder="/api/getCode" />
-        </el-form-item>
-
-        <el-form-item label="验证码超时(秒)">
-          <el-input-number v-model="form.codeTimeout" :min="1" />
-        </el-form-item>
-
-        <el-form-item label="返回手机号字段名">
-          <el-input v-model="form.responsePhoneField" placeholder="如 data.mobile" />
-        </el-form-item>
-
-        <el-form-item label="返回验证码ID字段名">
-          <el-input v-model="form.responseIdField" placeholder="如 data.sessionId" />
-        </el-form-item>
-
-        <el-form-item label="返回状态字段名">
-          <el-input v-model="form.responseStatusField" placeholder="如 status" />
-        </el-form-item>
-
-        <el-form-item label="返回验证码字段名">
-          <el-input v-model="form.responseCodeField" placeholder="如 data.smsCode" />
-        </el-form-item>
-
-        <el-form-item label="成本价">
-          <el-input-number v-model="form.costPrice" :min="0" />
-        </el-form-item>
-
-        <el-form-item label="最低价">
-          <el-input-number v-model="form.priceMin" :min="0" />
-        </el-form-item>
-
-        <el-form-item label="最高价">
-          <el-input-number v-model="form.priceMax" :min="0" />
-        </el-form-item>
-
-        <!-- 🟨 筛选配置 -->
-        <el-divider>筛选配置</el-divider>
-
-        <el-form-item label="是否启用筛选">
-          <el-switch v-model="form.enableFilter" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-
-        <el-form-item label="筛选API路由">
-          <el-input v-model="form.filterApi" placeholder="/api/filter" />
-        </el-form-item>
-
-        <el-form-item label="筛选密钥/ID">
-          <el-input v-model="form.filterId" placeholder="筛选API所需的密钥或ID" />
-        </el-form-item>
-
-        <!-- 🟩 认证配置 -->
-        <el-divider>认证配置</el-divider>
-
-        <el-form-item label="认证类型">
-          <el-select v-model="form.authType" placeholder="选择认证方式">
-            <el-option label="无认证 (NO_AUTH)" value="NO_AUTH" />
-            <el-option label="用户名密码(地址栏)" value="BASIC_AUTH_PARAM" />
-            <el-option label="用户名密码(JSON)" value="BASIC_AUTH_JSON" />
-            <el-option label="Token(请求头Header)" value="TOKEN_HEADER" />
-            <el-option label="Token(地址栏Param)" value="TOKEN_PARAM" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="用户名字段名">
-          <el-input v-model="form.authUsernameField" placeholder="如 username" />
-        </el-form-item>
-
-        <el-form-item label="密码字段名">
-          <el-input v-model="form.authPasswordField" placeholder="如 password" />
-        </el-form-item>
-
-        <el-form-item label="认证用户名">
-          <el-input v-model="form.authUsername" placeholder="admin" />
-        </el-form-item>
-
-        <el-form-item label="认证密码">
-          <el-input v-model="form.authPassword" show-password placeholder="******" />
-        </el-form-item>
-
-        <el-form-item label="Token字段名">
-          <el-input v-model="form.authTokenField" placeholder="如 token" />
-        </el-form-item>
-
-        <el-form-item label="Token值">
-          <el-input v-model="form.authTokenValue" placeholder="Token 值" />
-        </el-form-item>
-
-        <el-form-item label="Token前缀">
-          <el-input v-model="form.authTokenPrefix" placeholder="如 Bearer " />
-        </el-form-item>
-
-        <el-form-item label="状态">
-          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-
+      <el-form :model="form" label-width="160px">
+        <!-- 遍历表单配置项来生成表单 -->
+        <template v-for="group in formConfig" :key="group.title">
+          <el-divider>{{ group.title }}</el-divider>
+          <!-- 使用 el-row 和 el-col 实现两栏布局 -->
+          <el-row :gutter="20">
+            <el-col
+              :span="12"
+              v-for="field in group.fields"
+              :key="field.modelKey"
+            >
+              <el-form-item :label="field.label">
+                <component
+                  :is="field.component"
+                  v-model="form[field.modelKey]"
+                  v-bind="field.props"
+                  style="width: 100%"
+                >
+                  <template v-if="field.component === 'el-select' && field.options">
+                    <el-option
+                      v-for="option in field.options"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value"
+                    />
+                  </template>
+                </component>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </template>
       </el-form>
 
       <template #footer>
@@ -189,55 +102,202 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import PaginationBar from '@/components/PaginationBar.vue'
 import { pageProjects, pageAdd, pageUpdate, pageDelete } from '@/api/admin'
+// 引入新的API方法
+import { getProjectAuthEnums, getProjectRequestMethodEnums } from '@/api/admin'
 
+// ===================================
+// 表格配置 (已更新)
+// ===================================
+const tableData = ref([])
+const tableColumns = ref([
+  { prop: 'id', label: 'ID', width: '80' },
+  { prop: 'projectId', label: '项目标识', width: '120' },
+  { prop: 'projectName', label: '项目名称', width: '150' },
+  { prop: 'lineId', label: '线路ID', width: '100' },
+  { prop: 'domain', label: '域名' },
+  { prop: 'costPrice', label: '成本价', width: '90' },
+  { prop: 'priceMin', label: '最低价', width: '90' },
+  { prop: 'priceMax', label: '最高价', width: '90' },
+  { prop: 'codeTimeout', label: '超时(s)', width: '90' },
+  { prop: 'status', label: '状态', width: '80', slot: 'status' },
+  { label: '操作', width: '150', slot: 'actions', fixed: 'right' }
+])
 
-
-
-// 数据源
-const projectList = ref([])
+// ===================================
+// 分页与搜索
+// ===================================
 const total = ref(0)
 const page = ref(1)
 const pageSize = 10
 const keyword = ref('')
 
+// ===================================
 // 弹窗与表单
+// ===================================
 const dialogVisible = ref(false)
-const form = ref({
+
+const getDefaultForm = () => ({
   id: null,
+  // --- 基础信息 ---
   projectId: '',
+  projectName: '',
   lineId: '',
   domain: '',
+  // --- 核心API路由和方法配置 ---
+  loginRoute: '',
+  loginMethod: 'POST',
   getNumberRoute: '',
+  getNumberMethod: 'GET',
   getCodeRoute: '',
-  codeTimeout: 10,
-  responsePhoneField: '',
-  responseIdField: '',
-  responseStatusField: '',
-  responseCodeField: '',
-  costPrice: 0,
-  priceMin: 0,
-  priceMax: 0,
-  enableFilter: 0,
-  filterApi: '',
-  filterId: '',
+  getCodeField: '',
+  getCodeMethod: 'GET',
+  refreshTokenRoute: '',
+  // --- 核心API请求类型配置 ---
+  loginRequestType: 'JSON',
+  getNumberRequestType: 'PARAM',
+  getCodeRequestType: 'PARAM',
+  // --- 认证方式与凭证 ---
   authType: 'NO_AUTH',
-  authUsernameField: '',
-  authPasswordField: '',
+  authUsernameField: 'username',
   authUsername: '',
+  authPasswordField: 'password',
   authPassword: '',
-  authTokenField: '',
+  authTokenField: 'token',
+  authTokenPrefix: 'Bearer ',
   authTokenValue: '',
-  authTokenPrefix: '',
-  status: 1
+  tokenExpirationTime: null,
+  // --- API响应解析配置 ---
+  responseTokenField: '',
+  responseTokenExpirationField: '',
+  responseTokenExpirationUnit: 'SECONDS',
+  responsePhoneField: 'data.mobile',
+  responseIdField: 'data.sessionId',
+  responsePhoneIdField: '',
+  responseStatusField: 'status',
+  responseCodeField: 'data.smsCode',
+  codeRetrievalIdentifierKey: 'phone',
+  // --- 业务逻辑与定价配置 ---
+  codeTimeout: 60,
+  codeMaxAttempts: 10,
+  costPrice: 0.00,
+  priceMax: 0.00,
+  priceMin: 0.00,
+  status: true,
+  // --- 号码筛选配置 ---
+  enableFilter: false,
+  filterId: ''
 })
+
+const form = ref(getDefaultForm())
+
+// ===================================
+// 动态枚举数据
+// ===================================
+const authTypeOptions = ref([])
+const requestTypeOptions = ref([])
+const httpMethodOptions = ref([
+  { label: 'GET', value: 'GET' },
+  { label: 'POST', value: 'POST' }
+])
+const identifierKeyOptions = ref([
+  { label: '使用手机号(phone)', value: 'phone' },
+  { label: '使用会话ID(id)', value: 'id' }
+])
+
+// ===================================
+// 表单配置 (动态生成UI的核心) (已更新)
+// ===================================
+const formConfig = computed(() => [
+  {
+    title: '基础信息',
+    fields: [
+      { modelKey: 'projectName', label: '项目名称', component: 'el-input', props: { placeholder: '例如：XX平台' } },
+      { modelKey: 'projectId', label: '项目唯一标识', component: 'el-input', props: { placeholder: '例如：id0001' } },
+      { modelKey: 'lineId', label: '线路ID', component: 'el-input', props: { placeholder: '同一项目下不同API线路' } },
+      { modelKey: 'domain', label: '服务域名', component: 'el-input', props: { placeholder: 'https://api.example.com' } }
+    ]
+  },
+  {
+    title: '核心API路由与方法',
+    fields: [
+      { modelKey: 'loginRoute', label: '登录接口路径', component: 'el-input', props: { placeholder: '/api/login (可选)' } },
+      { modelKey: 'loginMethod', label: '登录请求方法', component: 'el-select', options: httpMethodOptions.value },
+      { modelKey: 'getNumberRoute', label: '获取手机号路径', component: 'el-input', props: { placeholder: '/api/getNumber' } },
+      { modelKey: 'getNumberMethod', label: '取号请求方法', component: 'el-select', options: httpMethodOptions.value },
+      { modelKey: 'getCodeRoute', label: '获取验证码路径', component: 'el-input', props: { placeholder: '/api/getCode' } },
+      { modelKey: 'getCodeMethod', label: '取码请求方法', component: 'el-select', options: httpMethodOptions.value }
+    ]
+  },
+  {
+    title: '核心API请求参数配置',
+    fields: [
+      { modelKey: 'loginRequestType', label: '登录请求类型', component: 'el-select', options: requestTypeOptions.value },
+      { modelKey: 'getNumberRequestType', label: '取号请求类型', component: 'el-select', options: requestTypeOptions.value },
+      { modelKey: 'getCodeRequestType', label: '取码请求类型', component: 'el-select', options: requestTypeOptions.value },
+      { modelKey: 'getCodeField', label: '取码请求参数字段名', component: 'el-input', props: { placeholder: '例如：phone 或 sessionId' } },
+      { modelKey: 'codeRetrievalIdentifierKey', label: '取码使用何种标识', component: 'el-select', options: identifierKeyOptions.value }
+    ]
+  },
+  {
+    title: '认证配置',
+    fields: [
+      { modelKey: 'authType', label: '认证类型', component: 'el-select', options: authTypeOptions.value },
+      { modelKey: 'authUsernameField', label: '用户名字段名', component: 'el-input', props: { placeholder: 'username, account ...' } },
+      { modelKey: 'authUsername', label: '认证用户名', component: 'el-input', props: { placeholder: 'API Key 或用户名' } },
+      { modelKey: 'authPasswordField', label: '密码字段名', component: 'el-input', props: { placeholder: 'password, secret ...' } },
+      { modelKey: 'authPassword', label: '认证密码', component: 'el-input', props: { showPassword: true, placeholder: 'API Secret 或密码' } },
+      { modelKey: 'authTokenField', label: 'Token字段名', component: 'el-input', props: { placeholder: 'token, access_token ...' } },
+      { modelKey: 'authTokenPrefix', label: 'Token前缀', component: 'el-input', props: { placeholder: '例如：Bearer ' } },
+      { modelKey: 'authTokenValue', label: '动态Token值', component: 'el-input', props: {placeholder: '由系统自动填充和更新' } }
+    ]
+  },
+  {
+    title: 'API响应解析配置',
+    fields: [
+      { modelKey: 'responseTokenField', label: '登录响应Token字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.token" } },
+      { modelKey: 'responsePhoneField', label: '取号响应手机号字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.mobile" } },
+      { modelKey: 'responseIdField', label: '取号响应会话ID字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.sessionId" } },
+      { modelKey: 'responsePhoneIdField', label: '取号响应手机号ID字段', component: 'el-input', props: { placeholder: "用于释放/拉黑的ID, 区别于会话ID" } },
+      { modelKey: 'responseStatusField', label: '取码响应状态字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：status" } },
+      { modelKey: 'responseCodeField', label: '取码响应验证码字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.smsCode" } }
+    ]
+  },
+  {
+    title: '业务与定价',
+    fields: [
+      { modelKey: 'costPrice', label: '项目成本价', component: 'el-input-number', props: { min: 0, precision: 2 } },
+      { modelKey: 'priceMin', label: '允许最低售价', component: 'el-input-number', props: { min: 0, precision: 2 } },
+      { modelKey: 'priceMax', label: '允许最高售价', component: 'el-input-number', props: { min: 0, precision: 2 } },
+      { modelKey: 'codeTimeout', label: '取码超时(秒)', component: 'el-input-number', props: { min: 1 } },
+      { modelKey: 'codeMaxAttempts', label: '最大尝试次数', component: 'el-input-number', props: { min: 1 } }
+    ]
+  },
+  {
+    title: '号码筛选',
+    fields: [
+      { modelKey: 'enableFilter', label: '是否启用筛选', component: 'el-switch', props: { activeValue: true, inactiveValue: false } },
+      { modelKey: 'filterId', label: '筛选API的ID/密钥', component: 'el-input', props: { placeholder: '筛选API所需的ID或密钥' } }
+    ]
+  },
+  {
+    title: '状态',
+    fields: [
+      { modelKey: 'status', label: '项目状态', component: 'el-switch', props: { activeText: "启用", inactiveText: "禁用", activeValue: true, inactiveValue: false } }
+    ]
+  }
+])
+
+// ===================================
+// 方法
+// ===================================
 
 // 打开弹窗
 function openDialog(row = null) {
-  form.value = row ? { ...row } : { ...form.value, id: null }
+  form.value = row ? { ...row } : getDefaultForm()
   dialogVisible.value = true
 }
 
@@ -250,19 +310,20 @@ async function fetchList() {
       return
     }
     const data = res.data || {}
-    projectList.value = data.records || []
+    tableData.value = data.records || []
     total.value = data.total || 0
   } catch (err) {
     ElMessage.error('获取项目列表失败')
   }
 }
-// 编辑项目新增项目
+
+// 保存项目 (新增或编辑)
 async function saveProject() {
   try {
     if (form.value.id) {
-      await pageUpdate(form.value) // 编辑
+      await pageUpdate(form.value)
     } else {
-      await pageAdd(form.value) // 新增
+      await pageAdd(form.value)
     }
     ElMessage.success('保存成功')
     dialogVisible.value = false
@@ -284,19 +345,53 @@ async function deleteProject(id) {
   }
 }
 
+// 获取认证类型枚举
+async function fetchAuthEnums() {
+  try {
+    const res = await getProjectAuthEnums()
+    authTypeOptions.value = res.data.map(item => ({
+      label: item.description,
+      value: item.value
+    }))
+  } catch (error) {
+    ElMessage.error('获取认证类型枚举失败')
+  }
+}
+
+// 获取请求类型枚举
+async function fetchRequestTypeEnums() {
+  try {
+    const res = await getProjectRequestMethodEnums()
+    requestTypeOptions.value = res.data.map(item => ({
+      label: item.description,
+      value: item.value
+    }))
+  } catch (error) {
+    ElMessage.error('获取请求类型枚举失败')
+  }
+}
 
 // 初始化加载
-onMounted(fetchList)
+onMounted(() => {
+  fetchList()
+  fetchAuthEnums()
+  fetchRequestTypeEnums()
+})
 </script>
 
 <style scoped>
 .page-container {
   padding: 20px;
-  border: 2px solid #6abae9;
 }
 .action-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+}
+.el-form-item {
+  margin-bottom: 18px;
+}
+.el-select {
+  width: 100%;
 }
 </style>

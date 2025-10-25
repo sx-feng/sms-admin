@@ -63,6 +63,9 @@ export const getErrorDetail = (errorId) => request(0, '/api/admin/getErrorDetail
 // 获取系统统计数据
 export const getStatistics = () => request(0, '/api/admin/statistics')
 
+//获取每日取号，码统计
+export const getDailyStats = (params) => request(0, '/api/admin/dailyStatsTrend',params, true)
+
 // ==================== 公告 ====================
 // 获取用户公告列表
 // GET /api/admin/get/user/notice
@@ -80,3 +83,9 @@ export const pageUpdate = (params) => request(1, '/api/project/update', params)
 
 // 删除项目
 export const pageDelete = (id) => request(1, `/api/project/delete/by-id/${id}`)
+
+//查询项目认证枚举信息
+export const getProjectAuthEnums = () => request(0, '/api/admin/enum/auth-types')
+
+//查询项目配置接口请求参数方式枚举信息
+export const getProjectRequestMethodEnums = () => request(0, '/api/admin/enum/request-types')
