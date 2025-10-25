@@ -246,7 +246,6 @@ function getAmountColor(row) {
 
 // --- 导出 ---
 async function exportExcel() {
-  ElMessage.info('导出功能待实现...')
   // const res = await exportBills({ dateRange: dateRange.value, userId: query.userId })
   // if (res?.data?.code === 200) {
   //   window.open(res.data.data.file)

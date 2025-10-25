@@ -12,7 +12,7 @@
 
     <!-- 用户数据表格 -->
     <el-table :data="tableData" border v-loading="loading" style="width: 100%">
-      <el-table-column prop="id" label="用户ID"  fixed />
+      <el-table-column prop="id" label="用户ID" fixed />
       <el-table-column prop="userName" label="用户名" width="150" />
       <el-table-column prop="balance" label="余额" width="120">
         <template #default="{ row }">
@@ -62,53 +62,102 @@
       </el-table-column>
       
       <!-- 操作列 -->
-      <el-table-column label="操作" width="280" fixed="right" align="center">
+      <el-table-column label="操作" width="350" fixed="right" align="center">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="openEditDialog(row)">编辑</el-button>
-          <el-button size="small" type="success" @click="openRechargeDialog(row)">充值</el-button>
+          <el-button size="small" type="success" @click="openFundDialog(row, 'recharge')">充值</el-button>
+          <el-button size="small" type="warning" @click="openFundDialog(row, 'deduct')">扣款</el-button>
           <el-button size="small" type="info" @click="openRecordDialog(row)">账单</el-button>
           <el-button size="small" type="danger" @click="deleteByUser(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
-
-    <!-- 分页组件 -->
-    <PaginationBar
-      :total="total"
-      v-model:page="page"
-      v-model:page-size="pageSize"
-      @change="getUserList"
-    />
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        background
+      />
+    </div>
 
     <!-- 弹窗组件 -->
     <EditDialog v-model="editDialogVisible" :user="currentUser" @updated="getUserList" />
-    <RechargeDialog v-model="rechargeDialogVisible" :user="currentUser" @updated="getUserList" />
     <RecordDialog v-model="recordDialogVisible" :user="currentUser" />
+
+    <!-- 新增：充值/扣款弹窗 -->
+    <el-dialog
+      v-model="fundDialogVisible"
+      :title="fundForm.action === 'recharge' ? '用户充值' : '用户扣款'"
+      width="450px"
+      @close="resetFundForm"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="fundForm" :rules="fundFormRules" ref="fundFormRef" label-width="80px">
+        <el-form-item label="用户名">
+          <el-input :value="currentUser?.userName" disabled />
+        </el-form-item>
+        <el-form-item label="操作类型" prop="action">
+           <el-radio-group v-model="fundForm.action">
+            <el-radio label="recharge">充值</el-radio>
+            <el-radio label="deduct">扣款</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="操作金额" prop="amount">
+          <el-input-number v-model="fundForm.amount" :precision="2" :step="10" :min="0.01" placeholder="请输入金额" style="width: 100%;" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="fundDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleFundSubmit" :loading="fundSubmitLoading">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
-import PaginationBar from '@/components/PaginationBar.vue';
+// 👇 [修改点]：移除了对 PaginationBar 的导入
+// import PaginationBar from '@/components/PaginationBar.vue'; 
 import RecordDialog from '@/components/RecordDialog.vue';
 import EditDialog from '@/components/EditDialog.vue';
-import RechargeDialog from '@/components/RechargeDialog.vue';
-// 假设你的API方法如下，请根据实际情况调整
-import { listUsers, updateUser,deleteUser} from '@/api/admin';
+import { listUsers, updateUser, deleteUser, rechargeUser, deductUser } from '@/api/admin';
 
-// 响应式状态
+// 表格和分页状态
 const tableData = ref([]);
 const loading = ref(false);
 const total = ref(0);
 const page = ref(1);
 const pageSize = ref(10);
-const currentUser = ref(null);
-const editDialogVisible = ref(false);
-const rechargeDialogVisible = ref(false);
-const recordDialogVisible = ref(false);
 const searchParentId = ref('');
+
+// 通用状态
+const currentUser = ref(null);
+
+// 弹窗状态
+const editDialogVisible = ref(false);
+const recordDialogVisible = ref(false);
+
+// 新增：充值/扣款弹窗的状态
+const fundDialogVisible = ref(false);
+const fundSubmitLoading = ref(false);
+const fundFormRef = ref(null);
+const fundForm = ref({
+  action: 'recharge', // 'recharge' 或 'deduct'
+  amount: undefined,
+});
+const fundFormRules = {
+  amount: [
+    { required: true, message: '请输入操作金额', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: '金额必须大于0', trigger: 'blur' },
+  ],
+};
 
 /**
  * 获取用户列表
@@ -119,11 +168,9 @@ async function getUserList() {
     const params = {
       page: page.value,
       size: pageSize.value,
-      // 如果 searchParentId 为空字符串，则不传递该参数
-      parentId: searchParentId.value || '', 
+      parentId: searchParentId.value || "",
     };
     const res = await listUsers(params);
-    // 为每行数据添加一个加载状态，用于控制代理权限开关的loading
     tableData.value = res.data.records.map(user => ({ ...user, agentLoading: false })) || [];
     total.value = res.data.total || 0;
   } catch (error) {
@@ -133,6 +180,9 @@ async function getUserList() {
     loading.value = false;
   }
 }
+
+// 监听分页变化，自动刷新列表，这部分代码无需改动
+watch([page, pageSize], getUserList);
 
 /**
  * 处理搜索
@@ -146,7 +196,7 @@ function handleSearch() {
  * 打开新增用户弹窗
  */
 function openAddDialog() {
-  currentUser.value = null; // 传入 null 或空对象表示新增
+  currentUser.value = null; 
   editDialogVisible.value = true;
 }
 
@@ -154,16 +204,8 @@ function openAddDialog() {
  * 打开编辑用户弹窗
  */
 function openEditDialog(user) {
-  currentUser.value = { ...user }; // 使用副本以避免直接修改表格数据
-  editDialogVisible.value = true;
-}
-
-/**
- * 打开充值弹窗
- */
-function openRechargeDialog(user) {
   currentUser.value = { ...user };
-  rechargeDialogVisible.value = true;
+  editDialogVisible.value = true;
 }
 
 /**
@@ -172,6 +214,66 @@ function openRechargeDialog(user) {
 function openRecordDialog(user) {
   currentUser.value = { ...user };
   recordDialogVisible.value = true;
+}
+
+/**
+ * 新增：打开充值/扣款弹窗
+ * @param {object} user - 当前操作的用户对象
+ * @param {string} actionType - 操作类型: 'recharge' 或 'deduct'
+ */
+function openFundDialog(user, actionType) {
+  currentUser.value = { ...user };
+  fundForm.value.action = actionType;
+  fundDialogVisible.value = true;
+}
+
+/**
+ * 新增：处理充值/扣款提交
+ */
+async function handleFundSubmit() {
+  if (!fundFormRef.value) return;
+  await fundFormRef.value.validate(async (valid) => {
+    if (valid) {
+      fundSubmitLoading.value = true;
+      try {
+        const { action, amount } = fundForm.value;
+        const targetUserId = currentUser.value.id;
+        const actionText = action === 'recharge' ? '充值' : '扣款';
+
+        if (action === 'recharge') {
+          await rechargeUser(targetUserId, amount);
+        } else {
+          // 检查余额是否足够扣款
+          if (currentUser.value.balance < amount) {
+             ElMessage.error('用户余额不足，无法扣款');
+             fundSubmitLoading.value = false;
+             return;
+          }
+          await deductUser(targetUserId, amount);
+        }
+        
+        ElMessage.success(`${actionText}成功`);
+        fundDialogVisible.value = false;
+        await getUserList(); // 成功后刷新列表
+      } catch (error) {
+        console.error(error);
+        ElMessage.error('操作失败，请查看控制台');
+      } finally {
+        fundSubmitLoading.value = false;
+      }
+    }
+  });
+}
+
+/**
+ * 新增：重置充值/扣款表单
+ */
+function resetFundForm() {
+    if (fundFormRef.value) {
+        fundFormRef.value.resetFields();
+    }
+    // 手动清空金额，因为 resetFields 可能不会将其设为 undefined
+    fundForm.value.amount = undefined;
 }
 
 /**
@@ -186,18 +288,16 @@ async function toggleAgent(row) {
       type: 'warning',
     });
     
-    row.agentLoading = true; // 开启加载状态
-    // 实际调用更新接口
+    row.agentLoading = true;
     await updateUser({ id: row.id, isAgent: row.isAgent });
     ElMessage.success(`用户 ${row.userName} 的代理权限已${newStatusText}`);
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('更新代理权限失败');
-      // 如果失败，将开关状态恢复
-      row.isAgent = row.isAgent === 1 ? 0 : 1;
+      row.isAgent = row.isAgent === 1 ? 0 : 1; // 恢复状态
     }
   } finally {
-    row.agentLoading = false; // 关闭加载状态
+    row.agentLoading = false;
   }
 }
 
@@ -211,10 +311,9 @@ function deleteByUser(user) {
     type: 'warning',
   })
   .then(async () => {
-    // 调用删除接口
     await deleteUser(user.id);
     ElMessage.success('删除成功');
-    getUserList(); // 刷新列表
+    await getUserList(); // 刷新列表
   })
   .catch(() => {
     // 用户取消操作
@@ -244,5 +343,11 @@ onMounted(getUserList);
 .actions {
   display: flex;
   align-items: center;
+}
+/* 👇 [新增样式]：为分页组件添加上边距和居中 */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 </style>

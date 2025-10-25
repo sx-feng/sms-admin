@@ -29,16 +29,16 @@
           />
         </el-form-item>
 
-        <el-form-item>
+        <!-- <el-form-item> -->
           <el-button
             type="primary"
-            style="width: 100%"
+            style="width: 50%"
             :loading="loading"
             @click="handleLogin"
           >
             登录
           </el-button>
-        </el-form-item>
+        <!-- </el-form-item> -->
       </el-form>
     </div>
   </div>
@@ -66,7 +66,7 @@ async function handleLogin() {
   }
 
   loading.value = true
-  await new Promise(r => setTimeout(r, 800)) // 模拟请求延迟
+  // await new Promise(r => setTimeout(r, 800)) // 模拟请求延迟
 const res = await adminLogin({
   username:form.value.username,
   password:form.value.password
@@ -87,10 +87,11 @@ const token=res.data
 
 <style scoped>
 .login-page {
-  height: 100vh;
+  height: 100svh;
   display: flex;
   justify-content: center;
   align-items: center;
+  border-radius: 20px;
   background: linear-gradient(135deg, #3a7bd5, #3a6073);
 }
 
