@@ -215,9 +215,6 @@ const getDefaultForm = () => ({
 })
 const form = ref(getDefaultForm())
 
-// ===================================
-// 动态枚举数据
-// ===================================
 const authTypeOptions = ref([])
 const requestTypeOptions = ref([])
 const httpMethodOptions = ref([
@@ -229,9 +226,6 @@ const identifierKeyOptions = ref([
   { label: '使用会话ID(id)', value: 'id' }
 ])
 
-// ===================================
-// 表单配置 (动态生成UI的核心) (已更新)
-// ===================================
 const formConfig = computed(() => [
   {
     title: '基础信息',
@@ -251,7 +245,6 @@ const formConfig = computed(() => [
       { modelKey: 'getNumberMethod', label: '取号请求方法', component: 'el-select', options: httpMethodOptions.value },
       { modelKey: 'getCodeRoute', label: '获取验证码路径', component: 'el-input', props: { placeholder: '/api/getCode' } },
       { modelKey: 'getCodeMethod', label: '取码请求方法', component: 'el-select', options: httpMethodOptions.value },
-      // (新增)
       { modelKey: 'refreshTokenRoute', label: '刷新Token路径', component: 'el-input', props: { placeholder: '/api/refresh_token (预留)' } }
     ]
   },
@@ -275,7 +268,6 @@ const formConfig = computed(() => [
       { modelKey: 'authPassword', label: '认证密码', component: 'el-input', props: { showPassword: true, placeholder: 'API Secret 或密码' } },
       { modelKey: 'authTokenField', label: 'Token字段名', component: 'el-input', props: { placeholder: 'token, access_token ...' } },
       { modelKey: 'authTokenPrefix', label: 'Token前缀', component: 'el-input', props: { placeholder: '例如：Bearer ' } },
-      // (更新) Token值和过期时间由系统管理，设为只读
       { modelKey: 'authTokenValue', label: '动态Token值', component: 'el-input', props: { placeholder: '由系统自动填充和更新'} },
       { modelKey: 'tokenExpirationTime', label: 'Token过期时间', component: 'el-input', props: { placeholder: '由系统自动填充和更新'} }
     ]
@@ -284,7 +276,6 @@ const formConfig = computed(() => [
     title: 'API响应解析配置 (JSONPath)',
     fields: [
       { modelKey: 'responseTokenField', label: '登录响应Token字段', component: 'el-input', props: { placeholder: "例如: data.token" } },
-      // (新增) Token 有效期相关字段
       { modelKey: 'responseTokenExpirationField', label: 'Token有效期字段', component: 'el-input', props: { placeholder: "例如: data.expires_in" } },
       { modelKey: 'responseTokenExpirationUnit', label: 'Token有效期单位', component: 'el-select', options: tokenExpirationUnitOptions.value },
       { modelKey: 'responsePhoneField', label: '取号响应手机号字段', component: 'el-input', props: { placeholder: "例如: data.mobile" } },
@@ -300,11 +291,10 @@ const formConfig = computed(() => [
       { modelKey: 'costPrice', label: '项目成本价', component: 'el-input-number', props: { min: 0, precision: 2, controlsPosition: 'right' } },
       { modelKey: 'priceMin', label: '允许最低售价', component: 'el-input-number', props: { min: 0, precision: 2, controlsPosition: 'right' } },
       { modelKey: 'priceMax', label: '允许最高售价', component: 'el-input-number', props: { min: 0, precision: 2, controlsPosition: 'right' } },
-      { modelKey: 'codeTimeout', label: '取码超时(秒)', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } },
-      { modelKey: 'codeMaxAttempts', label: '最大尝试次数', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } }
+      // { modelKey: 'codeTimeout', label: '取码超时(秒)', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } },
+      { modelKey: 'codeMaxAttempts', label: '取码最大尝试轮询次数', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } }
     ]
   },
-  // (重构) 将所有筛选相关的配置整合到一起
   // {
   //   title: '号码筛选配置 (可选)',
   //   fields: [
@@ -326,17 +316,11 @@ const formConfig = computed(() => [
   }
 ])
 
-// ===================================
-// 方法
-// ===================================
-
-// 打开弹窗
 function openDialog(row = null) {
   form.value = row ? { ...row } : getDefaultForm()
   dialogVisible.value = true
 }
 
-// 获取列表
 async function fetchList() {
   try {
     const res = await getProjectLis({ pageNum: page.value, pageSize: pageSize, keyword: keyword.value })
@@ -352,7 +336,6 @@ async function fetchList() {
   }
 }
 
-// 保存项目 (新增或编辑)
 async function saveProject() {
   try {
     if (form.value.id) {
@@ -368,7 +351,6 @@ async function saveProject() {
   }
 }
 
-// 删除项目
 async function deleteProject(id) {
   try {
     await ElMessageBox.confirm('确定要删除该项目吗？', '提示', { type: 'warning' })
@@ -380,7 +362,6 @@ async function deleteProject(id) {
   }
 }
 
-// 获取认证类型枚举
 async function fetchAuthEnums() {
   try {
     const res = await getProjectAuthEnums()
@@ -393,7 +374,6 @@ async function fetchAuthEnums() {
   }
 }
 
-// 获取请求类型枚举
 async function fetchRequestTypeEnums() {
   try {
     const res = await getProjectRequestMethodEnums()
@@ -406,7 +386,6 @@ async function fetchRequestTypeEnums() {
   }
 }
 
-// 初始化加载
 onMounted(() => {
   fetchList()
   fetchAuthEnums()

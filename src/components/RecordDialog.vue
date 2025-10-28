@@ -9,12 +9,24 @@
     destroy-on-close
   >
     <el-table :data="recordData" v-loading="loading" border height="50vh" style="width: 100%">
-      <el-table-column prop="createTime" label="时间" width="180" align="center" />
-      <el-table-column label="类型" width="100" align="center">
+      <el-table-column type="expand" width="50" align="center">
         <template #default="{ row }">
-          <!-- fundType: 1=收入, 2=支出, 0=业务 -->
-          <el-tag :type="getFundTypeTag(row.fundType)" effect="light">
-            {{ formatFundType(row.fundType) }}
+          <div v-if="row.fundType === 0" style="padding: 10px 20px">
+            <el-descriptions title="业务详情" :column="2" border>
+              <el-descriptions-item label="项目ID">{{ row.projectId || 'N/A' }}</el-descriptions-item>
+              <el-descriptions-item label="项目线路ID">{{ row.lineId || 'N/A' }}</el-descriptions-item>
+              <el-descriptions-item label="手机号码">{{ row.phoneNumber || 'N/A' }}</el-descriptions-item>
+              <el-descriptions-item label="验证码">{{ row.code || 'N/A' }}</el-descriptions-item>
+            </el-descriptions>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="createTime" label="时间" width="180" align="center" />
+      <el-table-column label="账本类型" width="100" align="center">
+        <template #default="{ row }">
+          <!-- ledgerType: 1=收入, 2=支出, 0=业务 -->
+          <el-tag :type="getFundTypeTag(row.ledgerType)" effect="light">
+            {{ formatFundType(row.ledgerType) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -140,20 +152,20 @@ function handleClose() {
  */
 function formatFundType(fundType) {
   switch (fundType) {
-    case 1: return '收入';
-    case 2: return '支出';
+    case 1: return '入账';
+    case 0: return '出账';
     default: return '业务';
   }
 }
 
 /**
- * 根据资金类型返回对应的 Element Plus 标签类型
+ * 根据资金类型返回对应的 Element Plus 标签类型 （1-入账，0-出账）
  * @param {number} fundType - 资金类型
  */
 function getFundTypeTag(fundType) {
   switch (fundType) {
     case 1: return 'success'; // 收入
-    case 2: return 'warning'; // 支出
+    case 0: return 'warning'; // 支出
     default: return 'info';    // 业务
   }
 }
