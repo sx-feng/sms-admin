@@ -92,7 +92,7 @@
        <el-table-column prop="charged" label="是否扣费" >
         <template #default="{ row }">
           <el-tag :type="row.charged === 1 ? 'success' : 'info'">
-            {{ row.charged === 1 ? '已扣费' : '未扣费' }}
+            {{ row.charged === 0 ? '已扣费' : '未扣费' }}
           </el-tag>
         </template>
       </el-table-column>

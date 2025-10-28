@@ -105,7 +105,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import PaginationBar from '@/components/PaginationBar.vue'
-import { pageProjects, pageAdd, pageUpdate, pageDelete } from '@/api/admin'
+import { getProjectLis, pageAdd, pageUpdate, pageDelete } from '@/api/admin'
 // 引入新的API方法
 import { getProjectAuthEnums, getProjectRequestMethodEnums } from '@/api/admin'
 
@@ -304,7 +304,7 @@ function openDialog(row = null) {
 // 获取列表
 async function fetchList() {
   try {
-    const res = await pageProjects({ pageNum: page.value, pageSize: pageSize, keyword: keyword.value })
+    const res = await getProjectLis({ pageNum: page.value, pageSize: pageSize, keyword: keyword.value })
     if (!res || res.ok === false) {
       ElMessage.error(res?.message || '获取项目列表失败')
       return

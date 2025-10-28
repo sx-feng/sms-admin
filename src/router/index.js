@@ -52,7 +52,13 @@ const routes = [
     path:'/billManage',
     name:'BillManage',
     component: () => import('@/pages/BillManage.vue')
+  },
+  {
+    path:'/userProjectLine',
+    name:'UserProjectLine',
+    component: () => import('@/pages/UserProjectLine.vue')
   }
+
 ]
 
 const router = createRouter({

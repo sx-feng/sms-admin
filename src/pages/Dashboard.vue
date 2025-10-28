@@ -174,7 +174,8 @@ const shortcuts = [
   { label: '系统设置', path: '/systemconfig', icon: Setting },
   { label: '日志查看', path: '/errorlogs', icon: Document },
   { label: '号码管理', path: '/usernumbermanage', icon: TrendCharts },
-  { label: '账单管理', path: '/billManage', icon: TrendCharts }
+  { label: '账单管理', path: '/billManage', icon: TrendCharts },
+  { label: '用户项目线路', path: '/userProjectLine', icon: Menu }
 ]
 
 // 跳转

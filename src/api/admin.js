@@ -73,7 +73,7 @@ export const getUserNotice = () => request(0, '/api/admin/get/user/notice')
 
 // ==================== 项目管理 ====================
 // 分页查询项目列表
-export const pageProjects = (params) => request(0, '/api/project/find/all', params, true)
+export const getProjectLis = (params) => request(0, '/api/project/find/all', params, true)
 
 // 新增项目
 export const pageAdd = (params) => request(1, '/api/project/add', params )
@@ -99,3 +99,29 @@ export const pageNumberList = (params) => request(0, '/api/admin/viewAllNumbers'
 //   接口ID：362860098
 //   接口地址：https://app.apifox.com/link/project/7230479/apis/api-362860098
 export const pageAllLedger = (params) => request(0, '/api/admin/viewAllLedger', params, true)
+
+/**
+ * 获取所有用户及其项目价格配置 (支持分页和筛选)
+ * GET /api/admin/user-project-prices
+ * 接口ID：366944405
+ * 接口地址：https://app.apifox.com/link/project/7230479/apis/api-366944405
+ * @param {object} params - 查询参数，例如 { pageNum, pageSize, userName, projectId, lineId }
+ */
+export const getUserProjectPrices = (params) => request(0, '/api/admin/user-project-prices', params ,true)
+
+
+/**
+ * 更新用户项目价格配置
+ * 更新用户项目价格配置表
+  POST /api/admin/userProjectLine/update/
+  接口ID：367021337
+  接口地址：https://app.apifox.com/link/project/7230479/apis/api-367021337
+ */
+export const updateUserProjectPrice = (data) => request(1, '/api/admin/userProjectLine/update/', data)
+
+
+/**
+ * 根据用户ID分页查询账本记录
+ * @param {object} params - 查询参数，包含 { pageNum, pageSize, userId }
+ */
+export const getUserLedgerRecords = (params) => request(0, '/api/admin/get/user-id/leader/', params, true);
