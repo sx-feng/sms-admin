@@ -1,4 +1,8 @@
 <template>
+
+  <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
+    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
+  </div>
   <div class="user-manage">
     <!-- 头部：标题、搜索和操作按钮 -->
     <div class="page-header">

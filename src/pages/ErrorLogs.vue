@@ -1,5 +1,8 @@
 <template>
   <div class="error-log-page">
+    <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
+    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
+  </div>
     <div class="header-bar">
       <h2 class="page-title">异常日志</h2>
       <el-button type="primary" size="small" @click="fetchLogs">🔄 刷新日志</el-button>

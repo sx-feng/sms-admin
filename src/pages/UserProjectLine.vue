@@ -1,5 +1,8 @@
 <template>
   <div>
+    <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
+    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
+  </div>
     <!-- 搜索表单 -->
     <el-form :inline="true" :model="searchParams" class="search-form" @submit.prevent="handleSearch">
       <el-form-item label="用户名">

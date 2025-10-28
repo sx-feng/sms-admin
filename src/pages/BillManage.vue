@@ -1,5 +1,8 @@
 <template>
   <div class="bill-manage-page">
+    <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
+    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
+  </div>
     <h2>账单管理</h2>
     <!-- 搜索表单 -->
     <el-form inline>
@@ -16,6 +19,16 @@
       <el-form-item label="用户ID">
         <el-input v-model="query.userId" placeholder="请输入用户ID" clearable/>
       </el-form-item>
+
+      <!-- 根据用户名查询 -->
+      <el-form-item label="用户名">
+        <el-input v-model="query.username" placeholder="请输入用户名" clearable/>
+      </el-form-item>
+      <!-- 根据备注查询 remark -->
+      <el-form-item label="备注">
+        <el-input v-model="query.remark" placeholder="请输入备注" clearable/>
+      </el-form-item>
+
       <el-form-item>
         <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
         <!-- <el-button :icon="Download" @click="exportExcel">导出Excel</el-button> -->
@@ -129,7 +142,9 @@ const query = reactive({
   page: 1,
   pageSize: 10,
   dateRange: [],
-  userId: ''
+  userId: '',
+  remark: '',
+  username: ''
 })
 
 const billList = ref([])
@@ -147,11 +162,13 @@ async function loadBillList() {
     const params = {
       page: query.page,
       size: query.pageSize,
-      ...(query.userId && { userId: query.userId }),
+      ...(query.userId && { filterByUserId: query.userId }),
       ...(query.dateRange?.length === 2 && {
         startTime: query.dateRange[0],
         endTime: query.dateRange[1]
-      })
+      }),
+      username: query.username ? query.username : '',
+      remark: query.remark ? query.remark : ''
     }
     const res = await pageAllLedger(params)
     if (res?.code === 200) {

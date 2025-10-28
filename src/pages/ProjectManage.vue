@@ -1,5 +1,8 @@
 ﻿<template>
   <div class="page-container">
+    <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
+    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
+  </div>
     <!-- 页面标题 -->
     <h2>项目配置页</h2>
 
@@ -112,6 +115,13 @@ import { getProjectAuthEnums, getProjectRequestMethodEnums } from '@/api/admin'
 // ===================================
 // 表格配置 (已更新)
 // ===================================
+
+const tokenExpirationUnitOptions = ref([
+  { label: '秒 (SECONDS)', value: 'SECONDS' },
+  { label: '分钟 (MINUTES)', value: 'MINUTES' },
+  { label: '小时 (HOURS)', value: 'HOURS' },
+  { label: '毫秒 (MILLISECONDS)', value: 'MILLISECONDS' }
+])
 const tableData = ref([])
 const tableColumns = ref([
   { prop: 'id', label: 'ID', width: '80' },
@@ -142,11 +152,13 @@ const dialogVisible = ref(false)
 
 const getDefaultForm = () => ({
   id: null,
+
   // --- 基础信息 ---
   projectId: '',
   projectName: '',
   lineId: '',
   domain: '',
+
   // --- 核心API路由和方法配置 ---
   loginRoute: '',
   loginMethod: 'POST',
@@ -155,11 +167,16 @@ const getDefaultForm = () => ({
   getCodeRoute: '',
   getCodeField: '',
   getCodeMethod: 'GET',
-  refreshTokenRoute: '',
+  refreshTokenRoute: '', // (新增)
+  selectNumberApiRoute: '', // (新增)
+  selectNumberApiRouteMethod: 'GET', // (新增)
+
   // --- 核心API请求类型配置 ---
   loginRequestType: 'JSON',
   getNumberRequestType: 'PARAM',
   getCodeRequestType: 'PARAM',
+  selectNumberApiRequestType: 'PARAM', // (新增, 修正了Java类中的拼写错误)
+
   // --- 认证方式与凭证 ---
   authType: 'NO_AUTH',
   authUsernameField: 'username',
@@ -170,6 +187,8 @@ const getDefaultForm = () => ({
   authTokenPrefix: 'Bearer ',
   authTokenValue: '',
   tokenExpirationTime: null,
+  selectNumberApiRequestValue: '', // (新增)
+
   // --- API响应解析配置 ---
   responseTokenField: '',
   responseTokenExpirationField: '',
@@ -180,6 +199,8 @@ const getDefaultForm = () => ({
   responseStatusField: 'status',
   responseCodeField: 'data.smsCode',
   codeRetrievalIdentifierKey: 'phone',
+  responseSelectNumberApiField: '', // (新增)
+
   // --- 业务逻辑与定价配置 ---
   codeTimeout: 60,
   codeMaxAttempts: 10,
@@ -187,11 +208,11 @@ const getDefaultForm = () => ({
   priceMax: 0.00,
   priceMin: 0.00,
   status: true,
+
   // --- 号码筛选配置 ---
   enableFilter: false,
   filterId: ''
 })
-
 const form = ref(getDefaultForm())
 
 // ===================================
@@ -229,7 +250,9 @@ const formConfig = computed(() => [
       { modelKey: 'getNumberRoute', label: '获取手机号路径', component: 'el-input', props: { placeholder: '/api/getNumber' } },
       { modelKey: 'getNumberMethod', label: '取号请求方法', component: 'el-select', options: httpMethodOptions.value },
       { modelKey: 'getCodeRoute', label: '获取验证码路径', component: 'el-input', props: { placeholder: '/api/getCode' } },
-      { modelKey: 'getCodeMethod', label: '取码请求方法', component: 'el-select', options: httpMethodOptions.value }
+      { modelKey: 'getCodeMethod', label: '取码请求方法', component: 'el-select', options: httpMethodOptions.value },
+      // (新增)
+      { modelKey: 'refreshTokenRoute', label: '刷新Token路径', component: 'el-input', props: { placeholder: '/api/refresh_token (预留)' } }
     ]
   },
   {
@@ -252,37 +275,49 @@ const formConfig = computed(() => [
       { modelKey: 'authPassword', label: '认证密码', component: 'el-input', props: { showPassword: true, placeholder: 'API Secret 或密码' } },
       { modelKey: 'authTokenField', label: 'Token字段名', component: 'el-input', props: { placeholder: 'token, access_token ...' } },
       { modelKey: 'authTokenPrefix', label: 'Token前缀', component: 'el-input', props: { placeholder: '例如：Bearer ' } },
-      { modelKey: 'authTokenValue', label: '动态Token值', component: 'el-input', props: {placeholder: '由系统自动填充和更新' } }
+      // (更新) Token值和过期时间由系统管理，设为只读
+      { modelKey: 'authTokenValue', label: '动态Token值', component: 'el-input', props: { placeholder: '由系统自动填充和更新'} },
+      { modelKey: 'tokenExpirationTime', label: 'Token过期时间', component: 'el-input', props: { placeholder: '由系统自动填充和更新'} }
     ]
   },
   {
-    title: 'API响应解析配置',
+    title: 'API响应解析配置 (JSONPath)',
     fields: [
-      { modelKey: 'responseTokenField', label: '登录响应Token字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.token" } },
-      { modelKey: 'responsePhoneField', label: '取号响应手机号字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.mobile" } },
-      { modelKey: 'responseIdField', label: '取号响应会话ID字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.sessionId" } },
+      { modelKey: 'responseTokenField', label: '登录响应Token字段', component: 'el-input', props: { placeholder: "例如: data.token" } },
+      // (新增) Token 有效期相关字段
+      { modelKey: 'responseTokenExpirationField', label: 'Token有效期字段', component: 'el-input', props: { placeholder: "例如: data.expires_in" } },
+      { modelKey: 'responseTokenExpirationUnit', label: 'Token有效期单位', component: 'el-select', options: tokenExpirationUnitOptions.value },
+      { modelKey: 'responsePhoneField', label: '取号响应手机号字段', component: 'el-input', props: { placeholder: "例如: data.mobile" } },
+      { modelKey: 'responseIdField', label: '取号响应会话ID字段', component: 'el-input', props: { placeholder: "例如: data.sessionId" } },
       { modelKey: 'responsePhoneIdField', label: '取号响应手机号ID字段', component: 'el-input', props: { placeholder: "用于释放/拉黑的ID, 区别于会话ID" } },
-      { modelKey: 'responseStatusField', label: '取码响应状态字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：status" } },
-      { modelKey: 'responseCodeField', label: '取码响应验证码字段', component: 'el-input', props: { placeholder: "支持JSONPath, 如：data.smsCode" } }
+      { modelKey: 'responseStatusField', label: '取码响应状态字段', component: 'el-input', props: { placeholder: "例如: status" } },
+      { modelKey: 'responseCodeField', label: '取码响应验证码字段', component: 'el-input', props: { placeholder: "例如: data.smsCode" } }
     ]
   },
   {
     title: '业务与定价',
     fields: [
-      { modelKey: 'costPrice', label: '项目成本价', component: 'el-input-number', props: { min: 0, precision: 2 } },
-      { modelKey: 'priceMin', label: '允许最低售价', component: 'el-input-number', props: { min: 0, precision: 2 } },
-      { modelKey: 'priceMax', label: '允许最高售价', component: 'el-input-number', props: { min: 0, precision: 2 } },
-      { modelKey: 'codeTimeout', label: '取码超时(秒)', component: 'el-input-number', props: { min: 1 } },
-      { modelKey: 'codeMaxAttempts', label: '最大尝试次数', component: 'el-input-number', props: { min: 1 } }
+      { modelKey: 'costPrice', label: '项目成本价', component: 'el-input-number', props: { min: 0, precision: 2, controlsPosition: 'right' } },
+      { modelKey: 'priceMin', label: '允许最低售价', component: 'el-input-number', props: { min: 0, precision: 2, controlsPosition: 'right' } },
+      { modelKey: 'priceMax', label: '允许最高售价', component: 'el-input-number', props: { min: 0, precision: 2, controlsPosition: 'right' } },
+      { modelKey: 'codeTimeout', label: '取码超时(秒)', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } },
+      { modelKey: 'codeMaxAttempts', label: '最大尝试次数', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } }
     ]
   },
-  {
-    title: '号码筛选',
-    fields: [
-      { modelKey: 'enableFilter', label: '是否启用筛选', component: 'el-switch', props: { activeValue: true, inactiveValue: false } },
-      { modelKey: 'filterId', label: '筛选API的ID/密钥', component: 'el-input', props: { placeholder: '筛选API所需的ID或密钥' } }
-    ]
-  },
+  // (重构) 将所有筛选相关的配置整合到一起
+  // {
+  //   title: '号码筛选配置 (可选)',
+  //   fields: [
+  //     { modelKey: 'enableFilter', label: '是否启用筛选', component: 'el-switch', props: { activeValue: true, inactiveValue: false } },
+  //     { modelKey: 'filterId', label: '筛选API的ID/密钥', component: 'el-input', props: { placeholder: '筛选API所需的ID或密钥' } },
+  //     // (新增) 筛选API的详细配置
+  //     { modelKey: 'selectNumberApiRoute', label: '筛选API路径', component: 'el-input', props: { placeholder: '/api/select_number' } },
+  //     { modelKey: 'selectNumberApiRouteMethod', label: '筛选API请求方法', component: 'el-select', options: httpMethodOptions.value },
+  //     { modelKey: 'selectNumberApiRequestType', label: '筛选API请求类型', component: 'el-select', options: requestTypeOptions.value },
+  //     { modelKey: 'selectNumberApiRequestValue', label: '筛选API请求字段', component: 'el-input', props: { placeholder: '例如: country=us&service=sms' } },
+  //     { modelKey: 'responseSelectNumberApiField', label: '筛选API响应字段', component: 'el-input', props: { placeholder: '支持JSONPath, 例如: data.numbers' } }
+  //   ]
+  // },
   {
     title: '状态',
     fields: [

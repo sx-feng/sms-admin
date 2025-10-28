@@ -1,5 +1,8 @@
 <template>
   <div class="number-manage-page">
+    <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
+    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
+  </div>
     <h2>号码记录</h2>
     <!-- 查询表单 -->
      <div class="search-form-container">
@@ -92,7 +95,7 @@
        <el-table-column prop="charged" label="是否扣费" >
         <template #default="{ row }">
           <el-tag :type="row.charged === 1 ? 'success' : 'info'">
-            {{ row.charged === 0 ? '已扣费' : '未扣费' }}
+            {{ row.charged === 1 ? '已扣费' : '未扣费' }}
           </el-tag>
         </template>
       </el-table-column>
