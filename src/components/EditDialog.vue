@@ -19,7 +19,7 @@
       <el-form-item label="确认密码" prop="confirmPassword">
         <el-input v-model="form.confirmPassword" type="password" placeholder="再次输入新密码" show-password />
       </el-form-item>
-      <el-form-item label="启用状态">
+      <el-form-item label="用户状态">
         <!-- el-switch 默认值是布尔型，这里通过 active-value 和 inactive-value 直接处理 -->
         <el-switch v-model="form.status" :active-value="0" :inactive-value="1" />
       </el-form-item>

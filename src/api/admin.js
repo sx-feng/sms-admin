@@ -125,3 +125,56 @@ export const updateUserProjectPrice = (data) => request(1, '/api/admin/userProje
  * @param {object} params - 查询参数，包含 { pageNum, pageSize, userId }
  */
 export const getUserLedgerRecords = (params) => request(0, '/api/admin/get/user-id/leader/', params, true);
+
+
+/**
+ * 数据报表 (支持分页和筛选)
+ * POST /api/admin/get/data
+ * 接口ID：370041384
+ * 接口地址：https://app.apifox.com/link/project/7230479/apis/api-370041384
+ * @param {object} params - 查询参数，对应后端的 StatisticsQueryDTO
+ */
+export const getDataReport = (params) => request(1, '/api/admin/get/data', params);
+
+/**
+ * addUserProjectPrices
+ * 为指定用户新增项目价格配置
+  POST /api/admin/user-project-prices/add
+  接口ID：370055505
+  接口地址：https://app.apifox.com/link/project/7230479/apis/api-370055505
+ */
+export const addUserProjectPrices = (data) => request(1, '/api/admin/user-project-prices/add', data);
+
+
+/**
+ * 获取所有价格模板
+ * GET /price-templates
+ * @returns {Promise}
+ */
+export const getAllPriceTemplates = () => request(0, '/api/admin/price-templates');
+
+/**
+ * 创建价格模板
+ * POST /price-templates
+ * @param {object} data - 对应 PriceTemplateCreateDTO
+ * @returns {Promise}
+ */
+export const createPriceTemplate = (data) => request(1, '/api/admin/price-templates', data);
+
+/**
+ * 更新价格模板
+ * POST /price-templates/{templateId}
+ * @param {number|string} templateId - 模板ID
+ * @param {object} data - 对应 PriceTemplateCreateDTO
+ * @returns {Promise}
+ */
+export const updatePriceTemplate = (templateId, data) => request(1, `/api/admin/price-templates/${templateId}`, data);
+
+/**
+ * 删除价格模板
+ * GET /price-templates/{templateId}
+ * 注意：后端接口使用了 GET 请求进行删除，这不符合 RESTful 规范，但我们遵循接口定义。
+ * @param {number|string} templateId - 模板ID
+ * @returns {Promise}
+ */
+export const deletePriceTemplate = (templateId) => request(0, `/api/admin/price-templates/${templateId}`);

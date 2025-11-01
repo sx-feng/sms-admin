@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
-    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
-  </div>
+      <el-button type="primary" @click="$router.push('/dashboard')">返回首页</el-button>
+    </div>
     <!-- 搜索表单 -->
     <el-form :inline="true" :model="searchParams" class="search-form" @submit.prevent="handleSearch">
       <el-form-item label="用户名">
@@ -21,6 +21,10 @@
         <el-button @click="handleReset">
           重置
         </el-button>
+        <!-- [新增] 添加配置按钮 -->
+        <el-button type="success" @click="handleAdd">
+          自定义添加用户配置
+        </el-button>
       </el-form-item>
     </el-form>
 
@@ -31,6 +35,7 @@
       border
       style="width: 100%"
     >
+      <!-- ... 表格列定义保持不变 ... -->
       <el-table-column label="用户ID" prop="userId" width="100" />
       <el-table-column label="用户名" prop="userName" />
       <el-table-column label="项目名称" prop="projectName" />
@@ -38,10 +43,13 @@
       <el-table-column label="线路ID" prop="lineId" />
       <el-table-column label="代理售价 (元)" prop="price" />
       <el-table-column label="成本价 (元)" prop="costPrice" />
-      <el-table-column label="操作" width="120" fixed="right">
+      <el-table-column label="操作"  fixed="right">
         <template #default="scope">
           <el-button type="primary" size="small" @click="handleEdit(scope.row)">
             编辑
+          </el-button>
+          <el-button type="success" size="small" @click="handleAddForRow(scope.row)">
+            添加项目
           </el-button>
         </template>
       </el-table-column>
@@ -83,7 +91,6 @@
             @change="handleProjectChange"
             :loading="projectLoading"
           >
-            <!-- 遍历从 getProjectLis 获取的项目列表 -->
             <el-option
               v-for="project in allProjects"
               :key="project.id"
@@ -111,13 +118,88 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- [新增] 添加配置弹窗 -->
+    <el-dialog
+      v-model="addDialogVisible"
+      title="添加用户项目价格配置"
+      width="600px"
+      @close="handleCancelAdd"
+    >
+      <el-form ref="addFormRef" :model="addForm" label-width="100px">
+        <el-form-item label="目标用户ID" prop="userId" :rules="[{ required: true, message: '用户ID不能为空', trigger: 'blur' }]">
+          <el-input-number v-model="addForm.userId" :min="1" controls-position="right" placeholder="请输入用户ID" style="width: 100%;" />
+        </el-form-item>
+
+        <el-divider content-position="center">要添加的项目</el-divider>
+
+        <!-- 动态增减的项目价格表单 -->
+        <div v-for="(item, index) in addForm.pricesToAdd" :key="index" style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+          <el-form-item
+            :label="`项目 ${index + 1}`"
+            :prop="`pricesToAdd.${index}.selectedDbId`"
+            :rules="[{ required: true, message: '请选择项目', trigger: 'change' }]"
+            style="flex: 1; margin-bottom: 0;"
+          >
+            <el-select
+              v-model="item.selectedDbId"
+              placeholder="请选择项目和线路"
+              style="width: 100%"
+              filterable
+              :loading="projectLoading"
+              @change="(selectedDbId) => handleAddProjectChange(selectedDbId, item)"
+            >
+              <el-option
+                v-for="project in allProjects"
+                :key="project.id"
+                :label="`${project.projectName} (ID: ${project.projectId} / 线路: ${project.lineId})`"
+                :value="project.id"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item
+            label-width="0"
+            :prop="`pricesToAdd.${index}.price`"
+            :rules="[{ required: true, message: '价格不能为空' }, { type: 'number', min: 0, message: '价格不能为负数' }]"
+            style="flex: 0.5; margin-bottom: 0;"
+          >
+            <el-input-number
+              v-model="item.price"
+              :precision="2"
+              :step="0.1"
+              :min="0"
+              placeholder="价格"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-button type="danger" :icon="Delete" circle @click="removeProjectPriceItem(item)" />
+        </div>
+
+        <el-form-item>
+            <el-button type="primary" plain @click="addProjectPriceItem">新增一项</el-button>
+        </el-form-item>
+
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="handleCancelAdd">取消</el-button>
+          <el-button type="primary" :loading="addLoading" @click="handleConfirmAdd">
+            确定
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getUserProjectPrices, updateUserProjectPrice ,getProjectLis} from '@/api/admin'
+// [修改] 引入新增的API方法和图标
+import { getUserProjectPrices, updateUserProjectPrice ,getProjectLis, addUserProjectPrices } from '@/api/admin'
+import { Delete } from '@element-plus/icons-vue'
 
 // --- 响应式状态定义 ---
 
@@ -127,28 +209,50 @@ const updateLoading = ref(false)
 const allProjects = ref([])
 const projectLoading = ref(false)
 
-const selectedProjectId = ref(null);
+const selectedProjectId = ref(null)
 
-// 存储扁平化后用于表格展示的数据
 const flattenedProjectPrices = ref([])
 
-// 搜索参数
 const searchParams = reactive({
   userName: '',
   projectId: '',
   lineId: ''
 })
 
-// 分页参数
 const pagination = reactive({
   pageNum: 1,
-  pageSize: 5, // 与后端默认值保持一致
+  pageSize: 5,
   total: 0
 })
 
 // 编辑弹窗相关
 const editDialogVisible = ref(false)
 const currentEditData = ref({})
+
+// [新增] 添加配置弹窗相关状态
+const addDialogVisible = ref(false)
+const addLoading = ref(false)
+const addFormRef = ref(null) // 新增表单的引用
+const addForm = reactive({
+  userId: null,
+  pricesToAdd: [] // 存储待添加的项目价格列表
+})
+
+
+/**
+ * [新增] 点击行内 "添加项目" 按钮时触发
+ * @param {object} row - 当前行的数据对象
+ */
+const handleAddForRow = (row) => {
+  // 填充用户信息到表单
+  addForm.userId = row.userId;
+  addForm.userName = row.userName;
+
+  // 为方便操作，默认添加一个空的待选项目
+  addProjectPriceItem();
+
+  addDialogVisible.value = true;
+};
 
 // --- 数据获取与处理 ---
 
@@ -166,22 +270,16 @@ const fetchUserProjectPrices = async () => {
     const res = await getUserProjectPrices(params)
     const pageData = res.data || { records: [], total: 0 }
     
-    // `pageData.records` 是后端返回的用户列表，每个用户包含一个 `projectPrices` 数组
     const userList = pageData.records || []
 
-    // 核心数据转换：使用 flatMap 将嵌套数据结构转换为扁平的列表
-    // 这样每一条项目价格配置都成为表格中的一行
     flattenedProjectPrices.value = userList.flatMap(user =>
       (user.projectPrices || []).map(project => ({
-        // 组合用户和项目的信息
         userId: user.userId,
         userName: user.userName,
-        // 展开项目价格配置的所有字段
         ...project
       }))
     )
 
-    // 从后端获取总条目数，用于分页
     pagination.total = pageData.total
     
   } catch (error) {
@@ -194,14 +292,11 @@ const fetchUserProjectPrices = async () => {
   }
 }
 
-// [新增] 获取所有项目列表的函数
 const fetchAllProjects = async () => {
-  // 如果已经加载过，就不再重复加载
   if (allProjects.value.length > 0) return;
 
   projectLoading.value = true;
   try {
-    // 传入-1或一个很大的数表示获取全部数据
     const res = await getProjectLis({ pageSize: -1 }); 
     allProjects.value = res.data.records || [];
   } catch (error) {
@@ -212,54 +307,42 @@ const fetchAllProjects = async () => {
   }
 }
 
-// 组件挂载时，获取用户价格数据和所有项目列表
 onMounted(() => {
   fetchUserProjectPrices();
-  fetchAllProjects(); // [新增] 调用获取项目列表的函数
+  fetchAllProjects();
 })
 
 
 // --- 事件处理 ---
 
-/**
- * 搜索按钮点击或分页大小改变
- */
 const handleSearch = () => {
-  pagination.pageNum = 1 // 每次新搜索或改变页大小都回到第一页
+  pagination.pageNum = 1 
   fetchUserProjectPrices()
 }
 
-/**
- * 重置搜索条件
- */
 const handleReset = () => {
   searchParams.userName = ''
   searchParams.projectId = ''
   searchParams.lineId = ''
-  handleSearch() // 重置后立即执行一次搜索
+  handleSearch()
 }
 
 const handleEdit = (row) => {
   currentEditData.value = { ...row }
   
-  // [修改] 找到当前行项目在 'allProjects' 列表中的对应项
   const currentProject = allProjects.value.find(
     p => p.projectId === row.projectId && p.lineId === row.lineId
   );
-  // [修改] 设置下拉框的默认选中值
   selectedProjectId.value = currentProject ? currentProject.id : null;
 
   editDialogVisible.value = true
 }
 
-// [新增] 当用户在下拉框中选择了一个新的项目时触发
 function handleProjectChange(selectedDbId) {
     const selectedProject = allProjects.value.find(p => p.id === selectedDbId);
     if (selectedProject) {
-        // 更新表单数据中的 projectId 和 lineId，用于提交
         currentEditData.value.projectId = selectedProject.projectId;
         currentEditData.value.lineId = selectedProject.lineId;
-        // （可选）同时更新项目名称，虽然它不提交，但可以保持数据一致性
         currentEditData.value.projectName = selectedProject.projectName;
     }
 }
@@ -267,13 +350,10 @@ function handleProjectChange(selectedDbId) {
 const handleCancel = () => {
   editDialogVisible.value = false
   currentEditData.value = {}
-  selectedProjectId.value = null; // [新增] 关闭时清空选择
+  selectedProjectId.value = null;
 }
-/**
- * 提交更新
- */
+
 const handleUpdate = async () => {
-  // [新增] 校验：确保用户选择了一个新项目
   if (!selectedProjectId.value) {
       ElMessage.warning('请选择一个新的项目和线路');
       return;
@@ -281,30 +361,27 @@ const handleUpdate = async () => {
 
   updateLoading.value = true
   try {
-    // [修改] 构建 payload，确保 projectId 和 lineId 是最新的
     const payload = {
       userProjectLineTableId: currentEditData.value.userProjectLineTableId,
       price: currentEditData.value.price,
-      projectId: currentEditData.value.projectId, // 使用更新后的 projectId
-      lineId: currentEditData.value.lineId,       // 使用更新后的 lineId
+      projectId: currentEditData.value.projectId,
+      lineId: currentEditData.value.lineId,
     }
 
     await updateUserProjectPrice(payload)
     ElMessage.success("更新成功！")
     editDialogVisible.value = false
 
-    // 局部更新前端数据，避免重新请求
     const index = flattenedProjectPrices.value.findIndex(
       item => item.userProjectLineTableId === currentEditData.value.userProjectLineTableId
     )
     if (index !== -1) {
-      // 更新所有相关字段
       flattenedProjectPrices.value[index].price = currentEditData.value.price;
       flattenedProjectPrices.value[index].projectId = currentEditData.value.projectId;
       flattenedProjectPrices.value[index].lineId = currentEditData.value.lineId;
       flattenedProjectPrices.value[index].projectName = currentEditData.value.projectName;
     } else {
-      fetchUserProjectPrices() // 兜底方案：重新加载
+      fetchUserProjectPrices()
     }
   } catch (error) {
     console.error("更新失败:", error)
@@ -313,6 +390,110 @@ const handleUpdate = async () => {
     updateLoading.value = false
   }
 }
+
+// --- [新增] 添加配置相关方法 ---
+
+/**
+ * 打开新增配置弹窗
+ */
+const handleAdd = () => {
+  addDialogVisible.value = true;
+};
+
+/**
+ * 重置新增表单并关闭弹窗
+ */
+const resetAddForm = () => {
+    addForm.userId = null;
+    addForm.pricesToAdd = []; // 清空项目列表
+    // 重置表单的校验状态
+    if (addFormRef.value) {
+        addFormRef.value.resetFields();
+    }
+}
+
+const handleCancelAdd = () => {
+  resetAddForm();
+  addDialogVisible.value = false;
+};
+
+/**
+ * 在新增表单中添加一个新的项目价格条目
+ */
+const addProjectPriceItem = () => {
+  addForm.pricesToAdd.push({
+    selectedDbId: null, // 用于 v-model 绑定 el-select
+    projectId: null,
+    lineId: null,
+    price: undefined, // 设置为 undefined 以显示 placeholder
+  });
+};
+
+/**
+ * 从新增表单中移除一个项目价格条目
+ */
+const removeProjectPriceItem = (itemToRemove) => {
+  const index = addForm.pricesToAdd.indexOf(itemToRemove);
+  if (index !== -1) {
+    addForm.pricesToAdd.splice(index, 1);
+  }
+};
+
+/**
+ * 当新增表单中的项目选择变化时，更新对应条目的 projectId 和 lineId
+ */
+const handleAddProjectChange = (selectedDbId, item) => {
+  const selectedProject = allProjects.value.find(p => p.id === selectedDbId);
+  if (selectedProject) {
+    item.projectId = selectedProject.projectId;
+    item.lineId = selectedProject.lineId;
+  }
+};
+
+/**
+ * 提交新增配置
+ */
+const handleConfirmAdd = async () => {
+  if (!addFormRef.value) return;
+
+  // 触发整个表单的校验
+  await addFormRef.value.validate(async (valid) => {
+    if (valid) {
+      if (addForm.pricesToAdd.length === 0) {
+        ElMessage.warning('请至少添加一个项目配置');
+        return;
+      }
+
+      addLoading.value = true;
+      try {
+        // 构建与后端 DTO 匹配的请求体
+        const payload = {
+          userId: addForm.userId,
+          pricesToAdd: addForm.pricesToAdd.map(item => ({
+            projectId: item.projectId,
+            lineId: item.lineId,
+            price: item.price
+          }))
+        };
+
+        // 调用后端接口
+        await addUserProjectPrices(payload);
+        ElMessage.success('新增配置成功！');
+        handleCancelAdd(); // 关闭并重置弹窗
+        handleSearch(); // 刷新表格数据
+      } catch (error) {
+        console.error("新增配置失败:", error);
+        ElMessage.error(error.message || '新增配置失败，请稍后重试。');
+      } finally {
+        addLoading.value = false;
+      }
+    } else {
+      ElMessage.error('请检查并完成表单必填项');
+      return false;
+    }
+  });
+};
+
 </script>
 
 <style scoped>
@@ -320,6 +501,6 @@ const handleUpdate = async () => {
   margin-bottom: 20px;
 }
 .el-form-item {
-  margin-bottom: 10px; /* 调整搜索表单项间距 */
+  margin-bottom: 10px;
 }
 </style>

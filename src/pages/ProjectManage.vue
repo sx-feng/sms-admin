@@ -132,7 +132,7 @@ const tableColumns = ref([
   { prop: 'costPrice', label: '成本价', width: '90' },
   { prop: 'priceMin', label: '最低价', width: '90' },
   { prop: 'priceMax', label: '最高价', width: '90' },
-  { prop: 'codeTimeout', label: '超时(s)', width: '90' },
+  { prop: 'codeMaxAttempts', label: '取码最大尝试次数', width: '90' },
   { prop: 'status', label: '状态', width: '80', slot: 'status' },
   { label: '操作', width: '150', slot: 'actions', fixed: 'right' }
 ])
@@ -295,19 +295,19 @@ const formConfig = computed(() => [
       { modelKey: 'codeMaxAttempts', label: '取码最大尝试轮询次数', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } }
     ]
   },
-  // {
-  //   title: '号码筛选配置 (可选)',
-  //   fields: [
-  //     { modelKey: 'enableFilter', label: '是否启用筛选', component: 'el-switch', props: { activeValue: true, inactiveValue: false } },
-  //     { modelKey: 'filterId', label: '筛选API的ID/密钥', component: 'el-input', props: { placeholder: '筛选API所需的ID或密钥' } },
-  //     // (新增) 筛选API的详细配置
-  //     { modelKey: 'selectNumberApiRoute', label: '筛选API路径', component: 'el-input', props: { placeholder: '/api/select_number' } },
-  //     { modelKey: 'selectNumberApiRouteMethod', label: '筛选API请求方法', component: 'el-select', options: httpMethodOptions.value },
-  //     { modelKey: 'selectNumberApiRequestType', label: '筛选API请求类型', component: 'el-select', options: requestTypeOptions.value },
-  //     { modelKey: 'selectNumberApiRequestValue', label: '筛选API请求字段', component: 'el-input', props: { placeholder: '例如: country=us&service=sms' } },
-  //     { modelKey: 'responseSelectNumberApiField', label: '筛选API响应字段', component: 'el-input', props: { placeholder: '支持JSONPath, 例如: data.numbers' } }
-  //   ]
-  // },
+   {
+     title: '号码筛选配置 (可选)',
+     fields: [
+       { modelKey: 'enableFilter', label: '是否启用筛选', component: 'el-switch', props: { activeValue: true, inactiveValue: false } },
+    //   { modelKey: 'filterId', label: '筛选API的ID/密钥', component: 'el-input', props: { placeholder: '筛选API所需的ID或密钥' } },
+       // (新增) 筛选API的详细配置
+   //    { modelKey: 'selectNumberApiRoute', label: '筛选API路径', component: 'el-input', props: { placeholder: '/api/select_number' } },
+    //   { modelKey: 'selectNumberApiRouteMethod', label: '筛选API请求方法', component: 'el-select', options: httpMethodOptions.value },
+   //    { modelKey: 'selectNumberApiRequestType', label: '筛选API请求类型', component: 'el-select', options: requestTypeOptions.value },
+       { modelKey: 'selectNumberApiRequestValue', label: '筛选API项目名称', component: 'el-input', props: { placeholder: '例如: dy/ks' } },
+ //      { modelKey: 'responseSelectNumberApiField', label: '筛选API响应字段', component: 'el-input', props: { placeholder: '支持JSONPath, 例如: data.numbers' } }
+     ]
+   },
   {
     title: '状态',
     fields: [

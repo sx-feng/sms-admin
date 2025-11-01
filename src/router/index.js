@@ -57,6 +57,16 @@ const routes = [
     path:'/userProjectLine',
     name:'UserProjectLine',
     component: () => import('@/pages/UserProjectLine.vue')
+  },
+  {
+    path:'/dataReport',
+    name:'DataReport',
+    component: () => import('@/pages/DataTable.vue')
+  },
+  {
+    path:'/projectPriceTemplate',
+    name:'ProjectPriceTemplate',
+    component: () => import('@/pages/UserProjectPriceTemplate.vue')
   }
 
 ]

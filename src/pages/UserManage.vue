@@ -1,12 +1,11 @@
 <template>
-
   <div class="block_index" style="position: fixed;top: 10px;left: 20px;z-index: 100;">
-    <el-button type="primary"  @click="$router.push('/dashboard')" >返回首页</el-button>
+    <el-button type="primary" @click="$router.push('/dashboard')">返回首页</el-button>
   </div>
   <div class="user-manage">
     <!-- 头部：标题、搜索和操作按钮 -->
     <div class="page-header">
-      <h2>👤 用户管理</h2>
+      <h2>用户管理</h2>
       <div class="actions">
         <el-input v-model="searchUserName" placeholder="按用户名模糊查询" size="small" clearable style="width: 180px; margin-right: 8px;" @clear="handleSearch" />
         <el-input v-model="searchParentId" placeholder="查询上级ID的用户" size="small" clearable style="width: 180px; margin-right: 8px;" />
@@ -24,9 +23,8 @@
           <span>¥ {{ Number(row.balance).toFixed(2) }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="100" align="center">
+      <el-table-column prop="status" label="用户状态" width="100" align="center">
         <template #default="{ row }">
-          <!-- 根据实体类注释：0=正常，1=冻结/禁用 -->
           <el-tag :type="row.status === 0 ? 'success' : 'danger'">
             {{ row.status === 0 ? '正常' : '禁用' }}
           </el-tag>
@@ -34,7 +32,6 @@
       </el-table-column>
       <el-table-column prop="isAgent" label="代理权限" width="110" align="center">
         <template #default="{ row }">
-          <!-- 根据实体类注释：0=否, 1=是 -->
           <el-switch
             v-model="row.isAgent"
             :active-value="1"
@@ -45,7 +42,6 @@
         </template>
       </el-table-column>
       
-      <!-- 多级表头：展示统计数据 -->
       <el-table-column label="最近24小时统计" align="center">
         <el-table-column prop="dailyGetCount" label="取号次数" width="110" align="center" />
         <el-table-column prop="dailyCodeCount" label="成功次数" width="110" align="center" />
@@ -66,7 +62,6 @@
         </el-table-column>
       </el-table-column>
       
-      <!-- 操作列 -->
       <el-table-column label="操作" width="350" fixed="right" align="center">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="openEditDialog(row)">编辑</el-button>
@@ -92,7 +87,6 @@
     <EditDialog v-model="editDialogVisible" :user="currentUser" @updated="getUserList" />
     <RecordDialog v-model="recordDialogVisible" :user="currentUser" />
 
-    <!-- 新增：充值/扣款弹窗 -->
     <el-dialog
       v-model="fundDialogVisible"
       :title="fundForm.action === 'recharge' ? '用户充值' : '用户扣款'"
@@ -121,9 +115,6 @@
         </span>
       </template>
     </el-dialog>
-
-
-
 
     <!-- ==================== 新增用户弹窗 (START) ==================== -->
     <el-dialog
@@ -162,6 +153,27 @@
         
         <el-divider>项目价格配置</el-divider>
 
+        <!-- =========== [MODIFIED] 价格模板区域更新 =========== -->
+        <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 10px;">
+          <el-select
+            v-model="selectedTemplateId"
+            placeholder="请选择一个价格模板"
+            clearable
+            style="width: 250px;"
+            @change="applySelectedTemplate"
+            :loading="templatesLoading"
+          >
+            <el-option
+              v-for="template in priceTemplates"
+              :key="template.id"
+              :label="template.name"
+              :value="template.id"
+            />
+          </el-select>
+          <span style="color: #909399; font-size: 12px;">选择模板后将自动填充下方匹配的项目售价。</span>
+        </div>
+        <!-- =============================================== -->
+
         <p v-if="projectLoading" style="text-align: center; color: #909399;">项目列表加载中...</p>
         <p v-else-if="!addForm.projectPrices || addForm.projectPrices.length === 0" style="text-align: center; color: #909399;">暂无可配置的项目</p>
         
@@ -173,16 +185,14 @@
           <el-table-column label="最低售价 (元)" prop="minPrice"/>
           <el-table-column label="售价 (元)" prop="price" min-width="190"> 
             <template #default="{ row }">
-              <!-- <el-form-item :prop="'projectPrices.' + $index + '.price'" :rules="priceRules" style="margin-bottom: 0;"> -->
-                <el-input-number
-                  v-model="row.price"
-                  :precision="2"
-                  :step="0.1"
-                  :min="0"
-                  placeholder="设置售价"
-                  style="width: 100%;"
-                />
-              <!-- </el-form-item> -->
+              <el-input-number
+                v-model="row.price"
+                :precision="2"
+                :step="0.1"
+                :min="0"
+                placeholder="设置售价"
+                style="width: 100%;"
+              />
             </template>
           </el-table-column>
           <el-table-column label="操作" width="80" align="center">
@@ -202,20 +212,18 @@
         </span>
       </template>
     </el-dialog>
-
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, reactive } from 'vue'; 
 import { ElMessageBox, ElMessage } from 'element-plus';
-import { Search, Plus, Delete } from '@element-plus/icons-vue';
+import { Search, Plus } from '@element-plus/icons-vue';
 
-// 移除了对 PaginationBar 的导入
-// import PaginationBar from '@/components/PaginationBar.vue'; 
 import RecordDialog from '@/components/RecordDialog.vue';
 import EditDialog from '@/components/EditDialog.vue';
-import { listUsers, updateUser, deleteUser, rechargeUser, deductUser ,createUser, getProjectLis} from '@/api/admin';
+// =========== [MODIFIED] 增加导入 getAllPriceTemplates 方法 ===========
+import { listUsers, updateUser, deleteUser, rechargeUser, deductUser, createUser, getProjectLis, getAllPriceTemplates } from '@/api/admin';
 
 // 表格和分页状态
 const tableData = ref([]);
@@ -234,25 +242,23 @@ const addDialogVisible = ref(false);
 const addSubmitLoading = ref(false);
 const projectLoading = ref(false);
 const addFormRef = ref(null);
-const allProjects = ref([]); // 用于缓存从后端获取的所有项目
+const allProjects = ref([]); 
 
+// =========== [MODIFIED] 新增用于价格模板的状态 ===========
+const priceTemplates = ref([]);       // 存储所有价格模板
+const templatesLoading = ref(false);  // 模板加载状态
+const selectedTemplateId = ref(null); // 选中的模板ID
+// ====================================================
 
-// 初始化表单数据结构
 const getInitialAddForm = () => ({
   username: '',
   password: '',
   initialBalance: 0.00,
   isAgent: false,
-  projectPrices: [] // 用于在表单中展示和编辑项目价格
+  projectPrices: [] 
 });
 
 const addForm = ref(getInitialAddForm());
-
-// 项目价格的校验规则
-const priceRules = [
-  { required: true, message: '请输入售价', trigger: 'blur' },
-  { type: 'number', min: 0, message: '价格不能为负数', trigger: 'blur' },
-];
 
 // 主表单的校验规则
 const addFormRules = reactive({
@@ -268,12 +274,12 @@ const addFormRules = reactive({
 const editDialogVisible = ref(false);
 const recordDialogVisible = ref(false);
 
-// 新增：充值/扣款弹窗的状态
+// 充值/扣款弹窗的状态
 const fundDialogVisible = ref(false);
 const fundSubmitLoading = ref(false);
 const fundFormRef = ref(null);
 const fundForm = ref({
-  action: 'recharge', // 'recharge' 或 'deduct'
+  action: 'recharge',
   amount: undefined,
 });
 const fundFormRules = {
@@ -308,56 +314,57 @@ async function getUserList() {
 
 /**
  * 从待提交的项目价格列表中移除一个项目
- * @param {number} index - 要移除的项目的索引
  */
 function handleDeleteProjectPrice(index) {
   addForm.value.projectPrices.splice(index, 1);
   ElMessage.info('已移除该项目价格配置');
 }
 
-// 监听分页变化，自动刷新列表，这部分代码无需改动
 watch([page, pageSize], getUserList);
 
 /**
  * 处理搜索
  */
 function handleSearch() {
-  page.value = 1; // 搜索时重置到第一页
+  page.value = 1; 
   getUserList();
 }
 
 /**
  * 打开新增用户弹窗
- * (原方法逻辑已更新)
  */
 async function openAddDialog() {
   addDialogVisible.value = true;
-  // 如果项目列表未加载，则异步获取
+  
+  // 并行获取项目列表和价格模板
+  const promises = [];
   if (allProjects.value.length === 0) {
-    await fetchProjects();
+    promises.push(fetchProjects());
   }
+  if (priceTemplates.value.length === 0) {
+    promises.push(fetchPriceTemplates());
+  }
+  await Promise.all(promises);
   
   // 基于获取到的项目列表，初始化价格配置
   addForm.value.projectPrices = allProjects.value.map(proj => ({
-    dbId: proj.id,                 // 项目表主键ID (用于后台关联)
-    projectId: proj.projectId,     // 项目ID (如 'id0001', 用于显示)
-    lineId: proj.lineId,           // 线路ID (用于显示)
-    projectName: proj.projectName, // 项目名称 (用于显示)
-    price: proj.priceMin ?? 0.00,  // 默认价格可以取项目的最低售价，如果没有则为0
-    maxPrice: proj.priceMax ?? 0.00, // 默认价格可以取项目的最高售价，如果没有则为0
-    minPrice: proj.priceMin ?? 0.00  // 默认价格可以取项目的最低售价，如果没有则为0
+    dbId: proj.id,
+    projectId: proj.projectId,
+    lineId: proj.lineId,
+    projectName: proj.projectName,
+    price: proj.priceMin ?? 0.00,
+    maxPrice: proj.priceMax ?? 0.00,
+    minPrice: proj.priceMin ?? 0.00
   }));
 }
 
 /**
- * [新增] 获取项目列表 (仅在需要时调用)
+ * 获取所有项目列表 (用于价格配置)
  */
 async function fetchProjects() {
   projectLoading.value = true;
   try {
-    // 假设 getProjectList API 会调用 /api/project/find/all
-    // 且不分页，返回所有项目
-    const res = await getProjectLis({ pageSize: -1 }); // 传入-1表示获取全部
+    const res = await getProjectLis({ pageSize: -1 });
     allProjects.value = res.data.records || [];
   } catch (error) {
     ElMessage.error('获取项目列表失败');
@@ -367,8 +374,59 @@ async function fetchProjects() {
   }
 }
 
+// =========== [NEW] 新增获取价格模板的方法 ===========
 /**
- * [新增] 处理新增用户提交
+ * 获取所有价格模板
+ */
+async function fetchPriceTemplates() {
+  templatesLoading.value = true;
+  try {
+    const res = await getAllPriceTemplates();
+    priceTemplates.value = res.data || [];
+  } catch (error) {
+    ElMessage.error('获取价格模板列表失败');
+    console.error(error);
+  } finally {
+    templatesLoading.value = false;
+  }
+}
+
+/**
+ * [NEW] 应用选中的价格模板
+ * @param {number} templateId - 选中的模板ID
+ */
+function applySelectedTemplate(templateId) {
+  if (!templateId) return; // 如果清空选择，则不执行任何操作
+
+  const selectedTemplate = priceTemplates.value.find(t => t.id === templateId);
+  if (!selectedTemplate || !selectedTemplate.items) {
+    ElMessage.error('未找到模板或模板数据格式不正确');
+    return;
+  }
+
+  // 使用Map进行高效查找，键为 "projectId-lineId"
+  const priceMap = new Map(selectedTemplate.items.map(item => [`${item.projectId}-${item.lineId}`, item.price]));
+
+  let appliedCount = 0;
+  // 遍历当前表单中的项目，应用模板价格
+  addForm.value.projectPrices.forEach(project => {
+    const key = `${project.projectId}-${project.lineId}`;
+    if (priceMap.has(key)) {
+      project.price = priceMap.get(key);
+      appliedCount++;
+    }
+  });
+
+  if (appliedCount > 0) {
+    ElMessage.success(`模板 "${selectedTemplate.name}" 已应用，更新了 ${appliedCount} 个项目价格。`);
+  } else {
+    ElMessage.warning(`模板 "${selectedTemplate.name}" 中的项目与当前列表不匹配。`);
+  }
+}
+// ====================================================
+
+/**
+ * 处理新增用户提交
  */
 async function handleAddSubmit() {
   if (!addFormRef.value) return;
@@ -376,13 +434,11 @@ async function handleAddSubmit() {
     if (valid) {
       addSubmitLoading.value = true;
       try {
-        // 构建提交给后端 createUser 接口的 DTO
         const payload = {
           username: addForm.value.username,
           password: addForm.value.password,
           initialBalance: addForm.value.initialBalance,
           isAgent: addForm.value.isAgent,
-          // 转换项目价格列表以匹配 ProjectPriceDTO 结构
           projectPrices: addForm.value.projectPrices.map(p => ({
             projectId: p.projectId,
             lineId: p.lineId, 
@@ -394,7 +450,7 @@ async function handleAddSubmit() {
 
         ElMessage.success('新增用户成功');
         addDialogVisible.value = false;
-        await getUserList(); // 成功后刷新列表
+        await getUserList();
       } catch (error) {
         console.error(error);
         ElMessage.error(error.message || '新增用户失败，请检查网络或联系管理员');
@@ -408,13 +464,15 @@ async function handleAddSubmit() {
 }
 
 /**
- * [新增] 关闭并重置新增用户表单
+ * 关闭并重置新增用户表单
  */
 function closeAddDialog() {
   if (addFormRef.value) {
     addFormRef.value.resetFields();
   }
   addForm.value = getInitialAddForm();
+  // =========== [MODIFIED] 重置模板选择 ===========
+  selectedTemplateId.value = null; 
 }
 
 /**
@@ -434,9 +492,7 @@ function openRecordDialog(user) {
 }
 
 /**
- * 新增：打开充值/扣款弹窗
- * @param {object} user - 当前操作的用户对象
- * @param {string} actionType - 操作类型: 'recharge' 或 'deduct'
+ * 打开充值/扣款弹窗
  */
 function openFundDialog(user, actionType) {
   currentUser.value = { ...user };
@@ -445,7 +501,7 @@ function openFundDialog(user, actionType) {
 }
 
 /**
- * 新增：处理充值/扣款提交
+ * 处理充值/扣款提交
  */
 async function handleFundSubmit() {
   if (!fundFormRef.value) return;
@@ -460,7 +516,6 @@ async function handleFundSubmit() {
         if (action === 'recharge') {
           await rechargeUser(targetUserId, amount);
         } else {
-          // 检查余额是否足够扣款
           if (currentUser.value.balance < amount) {
              ElMessage.error('用户余额不足，无法扣款');
              fundSubmitLoading.value = false;
@@ -471,7 +526,7 @@ async function handleFundSubmit() {
         
         ElMessage.success(`${actionText}成功`);
         fundDialogVisible.value = false;
-        await getUserList(); // 成功后刷新列表
+        await getUserList();
       } catch (error) {
         console.error(error);
         ElMessage.error('操作失败，请查看控制台');
@@ -483,13 +538,12 @@ async function handleFundSubmit() {
 }
 
 /**
- * 新增：重置充值/扣款表单
+ * 重置充值/扣款表单
  */
 function resetFundForm() {
     if (fundFormRef.value) {
         fundFormRef.value.resetFields();
     }
-    // 手动清空金额，因为 resetFields 可能不会将其设为 undefined
     fundForm.value.amount = undefined;
 }
 
@@ -511,7 +565,7 @@ async function toggleAgent(row) {
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('更新代理权限失败');
-      row.isAgent = row.isAgent === 1 ? 0 : 1; // 恢复状态
+      row.isAgent = row.isAgent === 1 ? 0 : 1;
     }
   } finally {
     row.agentLoading = false;
@@ -530,14 +584,11 @@ function deleteByUser(user) {
   .then(async () => {
     await deleteUser(user.id);
     ElMessage.success('删除成功');
-    await getUserList(); // 刷新列表
+    await getUserList();
   })
-  .catch(() => {
-    // 用户取消操作
-  });
+  .catch(() => {});
 }
 
-// 组件挂载时自动获取第一页数据
 onMounted(getUserList);
 </script>
 
@@ -561,7 +612,6 @@ onMounted(getUserList);
   display: flex;
   align-items: center;
 }
-/* 👇 [新增样式]：为分页组件添加上边距和居中 */
 .pagination-container {
   display: flex;
   justify-content: center;
