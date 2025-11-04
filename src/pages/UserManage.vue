@@ -352,7 +352,7 @@ async function openAddDialog() {
     projectId: proj.projectId,
     lineId: proj.lineId,
     projectName: proj.projectName,
-    price: proj.priceMin ?? 0.00,
+    price: proj.priceMax ?? 0.00,
     maxPrice: proj.priceMax ?? 0.00,
     minPrice: proj.priceMin ?? 0.00
   }));

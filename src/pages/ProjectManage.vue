@@ -42,6 +42,7 @@
           <!-- 操作列 -->
           <div v-if="column.slot === 'actions'">
             <el-button size="small" type="primary" @click="openDialog(row)">编辑</el-button>
+            <el-button size="small" type="success" @click="copyProject(row)">复制</el-button>
             <el-button size="small" type="danger" @click="deleteProject(row.id)">删除</el-button>
           </div>
         </template>
@@ -134,7 +135,7 @@ const tableColumns = ref([
   { prop: 'priceMax', label: '最高价', width: '90' },
   { prop: 'codeMaxAttempts', label: '取码最大尝试次数', width: '90' },
   { prop: 'status', label: '状态', width: '80', slot: 'status' },
-  { label: '操作', width: '150', slot: 'actions', fixed: 'right' }
+  { label: '操作', width: '', slot: 'actions', fixed: 'right' }
 ])
 
 // ===================================
@@ -229,6 +230,7 @@ const identifierKeyOptions = ref([
 const formConfig = computed(() => [
   {
     title: '基础信息',
+    
     fields: [
       { modelKey: 'projectName', label: '项目名称', component: 'el-input', props: { placeholder: '例如：XX平台' } },
       { modelKey: 'projectId', label: '项目唯一标识', component: 'el-input', props: { placeholder: '例如：id0001' } },
@@ -268,8 +270,8 @@ const formConfig = computed(() => [
       { modelKey: 'authPassword', label: '认证密码', component: 'el-input', props: { showPassword: true, placeholder: 'API Secret 或密码' } },
       { modelKey: 'authTokenField', label: 'Token字段名', component: 'el-input', props: { placeholder: 'token, access_token ...' } },
       { modelKey: 'authTokenPrefix', label: 'Token前缀', component: 'el-input', props: { placeholder: '例如：Bearer ' } },
-      { modelKey: 'authTokenValue', label: '动态Token值', component: 'el-input', props: { placeholder: '由系统自动填充和更新'} },
-      { modelKey: 'tokenExpirationTime', label: 'Token过期时间', component: 'el-input', props: { placeholder: '由系统自动填充和更新'} }
+      { modelKey: 'authTokenValue', label: '动态Token值', component: 'el-input', props: { placeholder: 'Token值'} },
+      { modelKey: 'tokenExpirationTime', label: 'Token过期时间', component: 'el-input', props: { placeholder: 'Token值'} }
     ]
   },
   {
@@ -334,6 +336,21 @@ async function fetchList() {
   } catch (err) {
     ElMessage.error('获取项目列表失败')
   }
+}
+
+function copyProject(row) {
+  // 创建一个深拷贝，避免影响原数据
+  const newProject = JSON.parse(JSON.stringify(row));
+  
+  // 清空关键的唯一性ID
+  newProject.id = null;
+  
+  // 修改项目名称和标识，提示用户需要更改
+  newProject.projectName = `${row.projectName}_副本`;
+  // newProject.projectId = ''; // 强制用户填写新的唯一标识
+
+  // 调用 openDialog 打开弹窗，并传入新数据
+  openDialog(newProject);
 }
 
 async function saveProject() {
