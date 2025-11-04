@@ -1,6 +1,7 @@
 // request.js
 // const baseURL = 'http://103.236.74.15:8088/';
 const baseURL = 'http://192.168.110.102:8026';
+// const baseURL = 'https://api.huikecode.com';
 
 /**
  * 通用请求方法（强化版）

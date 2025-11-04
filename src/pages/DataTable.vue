@@ -23,6 +23,14 @@
         <el-form-item label="线路ID">
           <el-input v-model="queryParams.lineId" placeholder="请输入线路ID" type="number" clearable />
         </el-form-item>
+        <!-- 新增：时间范围筛选 -->
+        <el-config-provider :locale="locale">
+          <el-form-item label="选择时间">
+            <el-date-picker v-model="queryParams.dateRange" type="datetimerange" range-separator="至"
+              start-placeholder="开始时间" end-placeholder="结束时间" value-format="YYYY-MM-DD HH:mm:ss" clearable />
+          </el-form-item>
+        </el-config-provider>
+
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
@@ -31,20 +39,13 @@
     </div>
 
     <!-- 主数据表格 -->
-    <el-table
-      :data="reportData"
-      border
-      v-loading="loading"
-      style="width: 100%"
-      row-key="projectId"
-      :expand-row-keys="expandRowKeys"
-      @expand-change="handleExpandChange"
-    >
+    <el-table :data="reportData" border v-loading="loading" style="width: 100%" row-key="projectId"
+      :expand-row-keys="expandRowKeys" @expand-change="handleExpandChange">
       <!-- 空状态 -->
       <template #empty>
         <el-empty description="暂无数据报表信息" />
       </template>
-      
+
       <!-- 可展开列，用于展示线路详情 -->
       <el-table-column type="expand">
         <template #default="props">
@@ -62,21 +63,21 @@
                 </template>
               </el-table-column>
               <el-table-column label="收入" prop="totalRevenue" align="center">
-                 <template #default="{ row }">
-                    <span style="color: #67C23A;">+ ¥{{ Number(row.totalRevenue).toFixed(2) }}</span>
-                 </template>
+                <template #default="{ row }">
+                  <span style="color: #67C23A;">+ ¥{{ Number(row.totalRevenue).toFixed(2) }}</span>
+                </template>
               </el-table-column>
               <el-table-column label="成本" prop="totalCost" align="center">
-                 <template #default="{ row }">
-                   <span style="color: #F56C6C;">- ¥{{ Number(row.totalCost).toFixed(2) }}</span>
-                 </template>
+                <template #default="{ row }">
+                  <span style="color: #F56C6C;">- ¥{{ Number(row.totalCost).toFixed(2) }}</span>
+                </template>
               </el-table-column>
               <el-table-column label="盈利" prop="totalProfit" align="center">
-                 <template #default="{ row }">
-                    <span :style="{ color: row.totalProfit >= 0 ? '#67C23A' : '#F56C6C' }">
-                      ¥{{ Number(row.totalProfit).toFixed(2) }}
-                    </span>
-                 </template>
+                <template #default="{ row }">
+                  <span :style="{ color: row.totalProfit >= 0 ? '#67C23A' : '#F56C6C' }">
+                    ¥{{ Number(row.totalProfit).toFixed(2) }}
+                  </span>
+                </template>
               </el-table-column>
             </el-table>
           </div>
@@ -91,43 +92,34 @@
       <el-table-column label="总成功" prop="successCount" align="center" />
       <el-table-column label="总回码率" align="center">
         <template #default="{ row }">
-            <el-progress 
-              :percentage="parseFloat(row.successRate.toFixed(1))" 
-              :color="row.successRate > 80 ? '#67c23a' : row.successRate > 50 ? '#e6a23c' : '#f56c6c'"
-            />
+          <el-progress :percentage="parseFloat(row.successRate.toFixed(1))"
+            :color="row.successRate > 80 ? '#67c23a' : row.successRate > 50 ? '#e6a23c' : '#f56c6c'" />
         </template>
       </el-table-column>
       <el-table-column label="总收入" prop="totalRevenue" align="center">
         <template #default="{ row }">
-            <span style="font-weight: bold; color: #67C23A;">+ ¥{{ Number(row.totalRevenue).toFixed(2) }}</span>
+          <span style="font-weight: bold; color: #67C23A;">+ ¥{{ Number(row.totalRevenue).toFixed(2) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="总成本" prop="totalCost" align="center">
-         <template #default="{ row }">
-            <span style="font-weight: bold; color: #F56C6C;">- ¥{{ Number(row.totalCost).toFixed(2) }}</span>
-         </template>
+        <template #default="{ row }">
+          <span style="font-weight: bold; color: #F56C6C;">- ¥{{ Number(row.totalCost).toFixed(2) }}</span>
+        </template>
       </el-table-column>
       <el-table-column label="总盈利" prop="totalProfit" align="center" fixed="right" width="150">
-         <template #default="{ row }">
-            <span :style="{ fontWeight: 'bold', fontSize: '16px', color: row.totalProfit >= 0 ? '#67C23A' : '#F56C6C' }">
-              ¥{{ Number(row.totalProfit).toFixed(2) }}
-            </span>
-         </template>
+        <template #default="{ row }">
+          <span :style="{ fontWeight: 'bold', fontSize: '16px', color: row.totalProfit >= 0 ? '#67C23A' : '#F56C6C' }">
+            ¥{{ Number(row.totalProfit).toFixed(2) }}
+          </span>
+        </template>
       </el-table-column>
     </el-table>
 
     <!-- 分页器 -->
     <div class="pagination-container">
-        <el-pagination
-            background
-            :current-page="pagination.current"
-            :page-size="pagination.size"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="pagination.total"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-        />
+      <el-pagination background :current-page="pagination.current" :page-size="pagination.size"
+        :page-sizes="[10, 20, 50, 100]" :total="pagination.total" layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange" @current-change="handleCurrentChange" />
     </div>
 
   </div>
@@ -135,6 +127,7 @@
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElMessage } from 'element-plus';
 import { Refresh, Search } from '@element-plus/icons-vue';
 import { getDataReport } from '@/api/admin';
@@ -146,11 +139,14 @@ const loading = ref(false);
 // 控制展开行
 const expandRowKeys = ref([]);
 
+const locale = zhCn;
+
 // 筛选查询参数
 const queryParams = reactive({
   projectName: '',
   projectId: '',
-  lineId: ''
+  lineId: '',
+  dateRange: [] // 新增：用于绑定日期范围选择器
 });
 
 // 分页参数
@@ -166,15 +162,24 @@ const pagination = reactive({
 async function fetchDataReport() {
   loading.value = true;
   // 清空展开行，避免数据刷新后行 key 不存在的问题
-  expandRowKeys.value = []; 
+  expandRowKeys.value = [];
 
   try {
     // 整合查询参数和分页参数
     const params = {
-      ...queryParams,
+      projectName: queryParams.projectName,
+      projectId: queryParams.projectId,
+      lineId: queryParams.lineId,
       current: pagination.current,
       size: pagination.size
     };
+
+    // 新增：处理时间范围参数
+    if (queryParams.dateRange && queryParams.dateRange.length === 2) {
+      params.startTime = queryParams.dateRange[0];
+      params.endTime = queryParams.dateRange[1];
+    }
+
     const res = await getDataReport(params);
     // 后端返回的是分页结构，表格数据在 res.data.records
     reportData.value = res.data?.records || [];
@@ -202,6 +207,7 @@ function handleReset() {
   queryParams.projectName = '';
   queryParams.projectId = '';
   queryParams.lineId = '';
+  queryParams.dateRange = []; // 新增：重置时间范围
   pagination.current = 1;
   pagination.size = 10;
   fetchDataReport();
@@ -229,11 +235,11 @@ function handleCurrentChange(newPage) {
  * 处理展开行变化事件，保持只展开一行
  */
 function handleExpandChange(row, expandedRows) {
-    if (expandedRows.length > 0) {
-        expandRowKeys.value = [row.projectId];
-    } else {
-        expandRowKeys.value = [];
-    }
+  if (expandedRows.length > 0) {
+    expandRowKeys.value = [row.projectId];
+  } else {
+    expandRowKeys.value = [];
+  }
 }
 
 // 组件挂载时自动获取数据

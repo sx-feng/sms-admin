@@ -15,6 +15,7 @@
     <el-table :data="tableData" border v-loading="loading" style="width: 100%">
       <el-table-column prop="id" label="模板ID" width="100" fixed />
       <el-table-column prop="name" label="模板名称" />
+      <el-table-column prop="creatId" label="创建者用户ID(管理员创建为0)" />
       <el-table-column label="包含项目数" width="150" align="center">
         <template #default="{ row }">
           {{ row.items ? row.items.length : 0 }} 个
