@@ -7,8 +7,8 @@
     <!-- 查询表单 -->
      <div class="search-form-container">
     <el-form :model="queryParams" ref="queryForm" inline @submit.prevent="handleSearch">
-      <el-form-item label="用户ID" prop="userId">
-        <el-input v-model="queryParams.userId" placeholder="请输入用户ID" clearable />
+      <el-form-item label="用户名" prop="userName">
+        <el-input v-model="queryParams.userName" placeholder="请输入用户名" clearable />
       </el-form-item>
       <el-form-item label="项目ID" prop="projectId">
         <el-input v-model="queryParams.projectId" placeholder="请输入项目ID" clearable />
@@ -84,6 +84,7 @@
       <el-table-column prop="id" label="ID"  />
       <el-table-column prop="userId" label="用户ID"  />
       <el-table-column prop="projectId" label="项目ID"  />
+       <el-table-column prop="userName" label="用户名"  />
       <el-table-column prop="lineId" label="线路ID"  />
       <el-table-column prop="phoneNumber" label="手机号" />
       <el-table-column prop="code" label="验证码" />
@@ -141,7 +142,7 @@ const queryParams = reactive({
   page: 1,
   size: 10,
   status: '',
-  userId: '',
+  userName: '',
   projectId: '',
   phoneNumber: '',
   charged: '',
@@ -197,7 +198,7 @@ function handleReset() {
   queryParams.page = 1;
   queryParams.size = 10;
   queryParams.status = '';
-  queryParams.userId = '';
+  queryParams.userName = '';
   queryParams.projectId = '';
   queryParams.phoneNumber = '';
   queryParams.charged = '';

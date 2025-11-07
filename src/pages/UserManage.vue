@@ -134,7 +134,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="密码" prop="password">
-              <el-input v-model="addForm.password" type="password" placeholder="请输入密码" show-password />
+              <el-input v-model="addForm.password"  placeholder="请输入密码"  />
             </el-form-item>
           </el-col>
         </el-row>
@@ -446,8 +446,10 @@ async function handleAddSubmit() {
           }))
         };
         
-        await createUser(payload);
-
+        const eee = await createUser(payload);
+        if (!eee || eee.ok === false) {
+          throw new Error(eee?.message || '新增用户失败');
+        }
         ElMessage.success('新增用户成功');
         addDialogVisible.value = false;
         await getUserList();

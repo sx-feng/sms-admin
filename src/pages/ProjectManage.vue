@@ -9,13 +9,13 @@
     <!-- 操作区域 -->
     <div class="action-bar">
       <el-button type="primary" @click="openDialog()">新增项目</el-button>
-      <!-- <el-input
+      <el-input
         v-model="keyword"
-        placeholder="搜索项目名称 / ID / 域名"
+        placeholder="搜索项目名称"
         clearable
         style="width: 250px; margin-left: 10px"
         @input="fetchList"
-      /> -->
+      />
     </div>
 
     <!-- 表格展示 (已更新) -->
@@ -58,13 +58,17 @@
     />
 
     <!-- 弹窗：新增/编辑项目 (已更新为两栏布局) -->
+  <!-- 弹窗：新增/编辑项目 (已更新) -->
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑项目' : '新增项目'"
-      width="1000px" 
+      width="1000px"
       destroy-on-close
     >
-      <el-form :model="form" label-width="160px">
+      <!-- ======================================================= -->
+      <!-- MODIFIED: 添加 ref, :model 和 :rules -->
+      <!-- ======================================================= -->
+      <el-form :model="form" :rules="rules" ref="projectFormRef" label-width="160px">
         <!-- 遍历表单配置项来生成表单 -->
         <template v-for="group in formConfig" :key="group.title">
           <el-divider>{{ group.title }}</el-divider>
@@ -75,7 +79,10 @@
               v-for="field in group.fields"
               :key="field.modelKey"
             >
-              <el-form-item :label="field.label">
+              <!-- ======================================================= -->
+              <!-- MODIFIED: 为需要验证的 el-form-item 添加 prop -->
+              <!-- ======================================================= -->
+              <el-form-item :label="field.label" :prop="field.modelKey">
                 <component
                   :is="field.component"
                   v-model="form[field.modelKey]"
@@ -128,6 +135,7 @@ const tableColumns = ref([
   { prop: 'id', label: 'ID', width: '80' },
   { prop: 'projectId', label: '项目标识', width: '120' },
   { prop: 'projectName', label: '项目名称', width: '150' },
+  { prop: 'lineName', label: '线路名称', width: '100' },
   { prop: 'lineId', label: '线路ID', width: '100' },
   { prop: 'domain', label: '域名' },
   { prop: 'costPrice', label: '成本价', width: '90' },
@@ -150,6 +158,18 @@ const keyword = ref('')
 // 弹窗与表单
 // ===================================
 const dialogVisible = ref(false)
+
+const projectFormRef = ref(null)
+
+const rules = ref({
+  projectName: [{ required: true, message: '请输入项目名称', trigger: 'blur' }],
+  lineName: [{ required: true, message: '请输入线路名称', trigger: 'blur' }],
+  projectId: [{ required: true, message: '请输入项目唯一标识', trigger: 'blur' }],
+  lineId: [{ required: true, message: '请输入线路ID', trigger: 'blur' }],
+  priceMax: [{ required: true, message: '请输入允许最高售价', trigger: ['blur', 'change'] }],
+  priceMin: [{ required: true, message: '请输入允许最低售价', trigger: ['blur', 'change'] }],
+  costPrice: [{ required: true, message: '请输入项目成本价', trigger: ['blur', 'change'] }]
+})
 
 const getDefaultForm = () => ({
   id: null,
@@ -235,6 +255,7 @@ const formConfig = computed(() => [
       { modelKey: 'projectName', label: '项目名称', component: 'el-input', props: { placeholder: '例如：XX平台' } },
       { modelKey: 'projectId', label: '项目唯一标识', component: 'el-input', props: { placeholder: '例如：id0001' } },
       { modelKey: 'lineId', label: '线路ID', component: 'el-input', props: { placeholder: '同一项目下不同API线路' } },
+      { modelKey: 'lineName', label: '线路名称', component: 'el-input', props: { placeholder: '同一项目下不同API线路名称' } },
       { modelKey: 'domain', label: '服务域名', component: 'el-input', props: { placeholder: 'https://api.example.com' } }
     ]
   },
@@ -270,8 +291,8 @@ const formConfig = computed(() => [
       { modelKey: 'authPassword', label: '认证密码', component: 'el-input', props: { showPassword: true, placeholder: 'API Secret 或密码' } },
       { modelKey: 'authTokenField', label: 'Token字段名', component: 'el-input', props: { placeholder: 'token, access_token ...' } },
       { modelKey: 'authTokenPrefix', label: 'Token前缀', component: 'el-input', props: { placeholder: '例如：Bearer ' } },
-      { modelKey: 'authTokenValue', label: '动态Token值', component: 'el-input', props: { placeholder: 'Token值'} },
-      { modelKey: 'tokenExpirationTime', label: 'Token过期时间', component: 'el-input', props: { placeholder: 'Token值'} }
+      { modelKey: 'authTokenValue', label: 'Token值', component: 'el-input', props: { placeholder: 'Token值,需要请求api获取'} },
+      { modelKey: 'tokenExpirationTime', label: 'Token过期时间', component: 'el-input', props: { placeholder: 'Token过期时间'} }
     ]
   },
   {
@@ -325,7 +346,7 @@ function openDialog(row = null) {
 
 async function fetchList() {
   try {
-    const res = await getProjectLis({ pageNum: page.value, pageSize: pageSize, keyword: keyword.value })
+    const res = await getProjectLis({ pageNum: page.value, pageSize: pageSize, projectName: keyword.value })
     if (!res || res.ok === false) {
       ElMessage.error(res?.message || '获取项目列表失败')
       return
@@ -354,20 +375,28 @@ function copyProject(row) {
 }
 
 async function saveProject() {
-  try {
-    if (form.value.id) {
-      await pageUpdate(form.value)
-    } else {
-      await pageAdd(form.value)
-    }
-    ElMessage.success('保存成功')
-    dialogVisible.value = false
-    fetchList()
-  } catch (err) {
-    ElMessage.error('保存失败')
-  }
-}
+  if (!projectFormRef.value) return
 
+  await projectFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        if (form.value.id) {
+          await pageUpdate(form.value)
+        } else {
+          await pageAdd(form.value)
+        }
+        ElMessage.success('保存成功')
+        dialogVisible.value = false
+        fetchList()
+      } catch (err) {
+        ElMessage.error('保存失败')
+      }
+    } else {
+      ElMessage.error('请填写所有必填项')
+      return false
+    }
+  })
+}
 async function deleteProject(id) {
   try {
     await ElMessageBox.confirm('确定要删除该项目吗？', '提示', { type: 'warning' })

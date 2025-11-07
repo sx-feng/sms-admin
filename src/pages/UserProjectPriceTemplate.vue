@@ -52,6 +52,8 @@
           <el-table-column label="项目名称" prop="projectName" width="200" />
           <el-table-column label="项目ID" prop="projectId" width="120" />
           <el-table-column label="线路ID" prop="lineId" width="120" />
+          <el-table-column label="最高价" prop="priceMax" width="120" />
+          <el-table-column label="最低价" prop="priceMin" width="120" />
           <el-table-column label="售价 (元)" prop="price"> 
             <template #default="{ row }">
               <el-input-number
@@ -195,6 +197,8 @@ async function openDialog(template = null) {
         lineId: proj.lineId,
         price: savedPrice ? savedPrice.price : 0.00,
         costPrice: savedPrice ? savedPrice.costPrice : 0.00,
+        priceMin: proj.priceMin,
+        priceMax: proj.priceMax,
       };
     });
 
@@ -206,6 +210,8 @@ async function openDialog(template = null) {
       lineId: proj.lineId,
       price: 0.00,
       costPrice: proj.costPrice || 0.00,
+       priceMin: proj.priceMin,
+        priceMax: proj.priceMax,
     }));
   }
 }

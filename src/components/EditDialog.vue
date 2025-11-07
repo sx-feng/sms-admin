@@ -2,10 +2,9 @@
   <el-dialog v-model="visible" title="编辑用户" width="520px" @close="onClose">
     <!-- 使用 :key 来确保每次打开弹窗时，表单状态都是全新的 -->
     <el-form v-if="visible" :model="form" :rules="rules" ref="formRef" label-width="90px">
-      <el-form-item label="用户ID">
-        <!-- 统一使用 id 字段 -->
+      <!-- <el-form-item label="用户ID">
         <el-input :model-value="form.id" disabled />
-      </el-form-item>
+      </el-form-item> -->
       <!-- prop 对应 form 的字段名，label 对应 Java 实体类注释 -->
       <el-form-item label="用户名" prop="userName">
         <el-input v-model="form.userName" placeholder="请输入用户名" />
@@ -14,10 +13,10 @@
         <el-input v-model="form.phone" placeholder="可选" />
       </el-form-item> -->
       <el-form-item label="新密码" prop="password">
-        <el-input v-model="form.password" type="password" placeholder="留空则不修改" show-password />
+        <el-input v-model="form.password"  placeholder="留空则不修改"/>
       </el-form-item>
       <el-form-item label="确认密码" prop="confirmPassword">
-        <el-input v-model="form.confirmPassword" type="password" placeholder="再次输入新密码" show-password />
+        <el-input v-model="form.confirmPassword"  placeholder="再次输入新密码"  />
       </el-form-item>
       <el-form-item label="用户状态">
         <!-- el-switch 默认值是布尔型，这里通过 active-value 和 inactive-value 直接处理 -->
