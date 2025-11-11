@@ -13,6 +13,11 @@ export const listUsers = (params) => request(0, '/api/admin/listUsers', params, 
 export const createUser = (data) => request(1, '/api/admin/createUser', data)
 
 // 修改用户信息
+/**
+ * 
+ * @param {*} data 
+ * @returns 
+ */
 export const updateUser = (data) => request(1, '/api/admin/updateUser', data)
 
 // 删除 / 禁用用户
@@ -116,8 +121,47 @@ export const getUserProjectPrices = (params) => request(0, '/api/admin/user-proj
   POST /api/admin/userProjectLine/update/
   接口ID：367021337
   接口地址：https://app.apifox.com/link/project/7230479/apis/api-367021337
+  接受数据结构：{
+    "userId": 98,
+    "userName": "谯艳",
+    "projectPrices": [
+        {
+            "id": 71,
+            "userProjectLineTableId": 22,
+            "projectName": "淦浩然",
+            "projectId": "75",
+            "lineId": "16",
+            "price": 700.69,
+            "costPrice": 6.39,
+            "maxPrice": 948.19,
+            "minPrice": 877.1
+        },
+        {
+            "id": 57,
+            "userProjectLineTableId": 17,
+            "projectName": "佘三锋",
+            "projectId": "29",
+            "lineId": "86",
+            "price": 132.19,
+            "costPrice": 12.09,
+            "maxPrice": 328.59,
+            "minPrice": 857.65
+        },
+        {
+            "id": 11,
+            "userProjectLineTableId": 25,
+            "projectName": "弘强",
+            "projectId": "27",
+            "lineId": "39",
+            "price": 444.4,
+            "costPrice": 680.09,
+            "maxPrice": 373.79,
+            "minPrice": 542.89
+        }
+    ]
+}
  */
-export const updateUserProjectPrice = (data) => request(1, '/api/admin/userProjectLine/update/', data)
+export const updateUserProjectPrice = (data) => request(1, '/api/admin/user-project-prices/update', data)
 
 
 /**
@@ -178,3 +222,47 @@ export const updatePriceTemplate = (templateId, data) => request(1, `/api/admin/
  * @returns {Promise}
  */
 export const deletePriceTemplate = (templateId) => request(0, `/api/admin/price-templates/${templateId}`);
+
+/**
+ * 管理员根据下级用户ID获取其项目价格配置列表
+ * userId  integer 用户ID
+  GET /api/admin/user/project-prices/get
+  http://127.0.0.1:8026/api/admin/user/project-prices/get?userId=11
+  接口ID：374081070
+  接口地址：https://app.apifox.com/link/project/7230479/apis/api-374081070
+  返回数据结构：{
+    "code": 200,
+    "message": "查询成功",
+    "data": [
+    
+        {
+            "id": 133,
+            "createTime": "2025-11-06 16:14:04",
+            "updateTime": "2025-11-06 16:14:04",
+            "userId": 11,
+            "projectTableId": 19,
+            "projectName": "222",
+            "projectId": "222",
+            "lineId": "222",
+            "costPrice": 2.00,
+            "remark": null,
+            "agentPrice": 3.00
+        },
+        {
+            "id": 173,
+            "createTime": "2025-11-07 15:21:32",
+            "updateTime": "2025-11-07 15:21:32",
+            "userId": 11,
+            "projectTableId": 20,
+            "projectName": "MM首③24H",
+            "projectId": "101",
+            "lineId": "3",
+            "costPrice": 5.50,
+            "remark": null,
+            "agentPrice": 10.00
+        }
+        ........
+    ]
+}
+ */
+export const getSubordinateUserProjectPrices = (userId) => request(0, '/api/admin/user/project-prices/get', { userId }, true);

@@ -5,7 +5,6 @@
     </div>
     <h2>账单管理</h2>
     <!-- 搜索表单 -->
-    <!-- 增加一个自定义 class 'responsive-form' 以便应用响应式样式 -->
     <el-form :model="query" inline class="responsive-form">
       <el-form-item label="时间范围">
         <el-date-picker
@@ -23,22 +22,27 @@
       <el-form-item label="备注">
         <el-input v-model="query.remark" placeholder="请输入备注" clearable/>
       </el-form-item>
+      
+      <!-- 修改：资金类型筛选，使用 v-for 动态渲染 -->
       <el-form-item label="资金类型">
         <el-select v-model="query.fundType" placeholder="请选择资金类型" clearable style="width: 150px;">
-          <el-option label="业务扣费" :value="0"></el-option>
-          <el-option label="后台操作" :value="1"></el-option>
+          <el-option
+            v-for="item in fundTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
       </el-form-item>
+
       <el-form-item label="账本类型">
         <el-select v-model="query.ledgerType" placeholder="请选择账本类型" clearable style="width: 150px;">
           <el-option label="出账" :value="0"></el-option>
           <el-option label="入账" :value="1"></el-option>
         </el-select>
       </el-form-item>
-      <!-- 将按钮也放入一个 el-form-item 中，以便更好地控制布局 -->
       <el-form-item class="form-buttons">
         <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-        <!-- <el-button :icon="Download" @click="exportExcel">导出Excel</el-button> -->
       </el-form-item>
     </el-form>
 
@@ -52,8 +56,7 @@
       :default-sort="{prop: 'timestamp', order: 'descending'}"
       @sort-change="handleSortChange"
     >
-      <!-- ... 表格内容保持不变 ... -->
-       <el-table-column prop="id" label="账单ID" width="80" align="center"/>
+      <el-table-column prop="id" label="账单ID" width="80" align="center"/>
       <el-table-column prop="userName" label="用户名" width="100" align="center"/>
       <el-table-column label="变动金额" width="120" align="center">
         <template #default="{ row }">
@@ -65,7 +68,8 @@
       <el-table-column prop="balanceAfter" label="变动后余额" width="140" align="center"/>
       <el-table-column prop="fundType" label="资金类型" width="120" align="center">
          <template #default="{ row }">
-          <el-tag :type="row.fundType === 0 ? 'warning' : 'success'">
+           <!-- 修改：标签颜色根据账本类型（入账/出账）判断，更准确 -->
+          <el-tag :type="row.ledgerType === 1 ? 'success' : 'warning'">
             {{ formatFundType(row.fundType) }}
           </el-tag>
         </template>
@@ -94,7 +98,6 @@
     />
 
     <!-- 明细弹窗 -->
-    <!-- ... 弹窗内容保持不变 ... -->
     <el-dialog
       title="账单明细"
       v-model="dialogVisible"
@@ -111,7 +114,8 @@
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="资金类型">
-          <el-tag :type="selectedRecord.fundType === 0 ? 'warning' : 'success'">
+           <!-- 修改：标签颜色根据账本类型判断 -->
+          <el-tag :type="selectedRecord.ledgerType === 1 ? 'success' : 'warning'">
             {{ formatFundType(selectedRecord.fundType) }}
           </el-tag>
         </el-descriptions-item>
@@ -123,8 +127,7 @@
         </el-descriptions-item>
         <el-descriptions-item label="变动前余额">{{ selectedRecord.balanceBefore }}</el-descriptions-item>
         <el-descriptions-item label="变动后余额">{{ selectedRecord.balanceAfter }}</el-descriptions-item>
-
-        <!-- 仅当是业务扣费时，显示以下业务相关信息 -->
+        
         <template v-if="selectedRecord.fundType === 0">
           <el-descriptions-item label="项目ID">{{ selectedRecord.projectId || 'N/A' }}</el-descriptions-item>
           <el-descriptions-item label="线路ID">{{ selectedRecord.lineId || 'N/A' }}</el-descriptions-item>
@@ -148,9 +151,25 @@
 import { ref, onMounted, reactive } from 'vue'
 import { pageAllLedger } from '@/api/admin.js'
 import { ElMessage } from 'element-plus'
-import { Search, Download } from '@element-plus/icons-vue'
+import { Search } from '@element-plus/icons-vue'
 
-// 查询参数
+// 新增：定义与后端枚举匹配的资金类型选项和映射
+const fundTypeOptions = ref([
+  { value: 0, label: '业务扣费' },
+  { value: 1, label: '代理充值' },
+  { value: 2, label: '代理扣款' },
+  { value: 4, label: '代理回款' },
+  { value: 3, label: '管理员操作' }
+]);
+
+const fundTypeMap = {
+  0: '业务扣费',
+  1: '代理充值',
+  2: '代理扣款',
+  4: '代理回款',
+  3: '管理员操作'
+};
+
 const query = reactive({
   page: 1,
   pageSize: 10,
@@ -158,9 +177,8 @@ const query = reactive({
   userId: '',
   remark: '',
   username: '',
-  fundType: '',   // 新增：资金类型
-  ledgerType: '', // 新增：账本类型
-  // 新增排序字段
+  fundType: '',
+  ledgerType: '',
   sortField: 'timestamp',
   sortOrder: 'desc',
 })
@@ -168,8 +186,6 @@ const query = reactive({
 const billList = ref([])
 const total = ref(0)
 const loading = ref(false)
-
-// 详情弹窗相关
 const selectedRecord = ref(null)
 const dialogVisible = ref(false)
 
@@ -186,11 +202,9 @@ async function loadBillList() {
         endTime: query.dateRange[1]
       }),
       username: query.username || '',
-    
       remark: query.remark || '',
       ...(query.fundType !== '' && query.fundType != null && { fundType: query.fundType }),
       ...(query.ledgerType !== '' && query.ledgerType != null && { ledgerType: query.ledgerType }),
-      // 新增：传递排序参数
       sortField: query.sortField,
       sortOrder: query.sortOrder,
     }
@@ -211,61 +225,34 @@ async function loadBillList() {
   }
 }
 
-// 组件挂载时自动加载
-onMounted(() => {
-  loadBillList()
-})
+onMounted(() => { loadBillList() })
 
 // --- 事件处理 ---
-function handleSearch() {
-  query.page = 1
-  loadBillList()
-}
-
-function handleSizeChange(newSize) {
-  query.pageSize = newSize
-  query.page = 1
-  loadBillList()
-}
-
-function handlePageChange(currentPage) {
-  query.page = currentPage
-  loadBillList()
-}
-
-// 新增：处理表格排序
+function handleSearch() { query.page = 1; loadBillList() }
+function handleSizeChange(newSize) { query.pageSize = newSize; query.page = 1; loadBillList() }
+function handlePageChange(currentPage) { query.page = currentPage; loadBillList() }
 function handleSortChange({ prop, order }) {
   query.sortField = prop
-  // element-plus 的 order 是 'ascending' 或 'descending'，需要转换为 'asc' 或 'desc'
   query.sortOrder = order === 'ascending' ? 'asc' : 'desc'
   loadBillList()
 }
-
-function openRecordDetail(row) {
-  selectedRecord.value = row
-  dialogVisible.value = true
-}
+function openRecordDetail(row) { selectedRecord.value = row; dialogVisible.value = true }
 
 // --- 格式化函数 ---
+// 修改：使用新的 fundTypeMap 进行格式化
 function formatFundType(type) {
-  const map = {
-    0: '业务扣费',
-    1: '后台操作'
-  }
-  return map[type] ?? '未知类型'
+  return fundTypeMap[type] ?? '未知类型'
 }
 
 function formatLedgerType(type) {
-  const map = {
-    0: '出账',
-    1: '入账'
-  }
+  const map = { 0: '出账', 1: '入账' }
   return map[type] ?? '未知状态'
 }
 
 function formatAmount(row) {
   if (row.price != null) {
-    const sign = row.ledgerType === 1 ? '+' : '-'
+    const sign = row.ledgerType === 1 ? '+' : ''
+    // 注意：出账金额本身可能是负数，这里统一由 ledgerType 控制符号，取 price 绝对值
     return `${sign}${Number(row.price).toFixed(2)}`
   }
   const amount = Number(row.balanceAfter) - Number(row.balanceBefore)
@@ -276,14 +263,10 @@ function getAmountColor(row) {
   return row.ledgerType === 1 ? '#67C23A' : '#F56C6C'
 }
 
-// --- 导出 (逻辑未变) ---
-async function exportExcel() {
-  // ...
-}
-
 </script>
 
 <style scoped>
+/* 样式部分保持不变 */
 .bill-manage-page {
   padding: 20px;
 }
@@ -292,63 +275,46 @@ async function exportExcel() {
   display: flex;
   justify-content: flex-end;
 }
-
-/* --- 新增：响应式表单样式 --- */
-
-/* 默认（桌面端）样式微调 */
 .responsive-form {
   display: flex;
-  flex-wrap: wrap; /* 允许表单项换行 */
-  align-items: center; /* 垂直居中对齐 */
-  gap: 10px; /* 表单项之间的间距 */
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
-
-/* 移除 Element Plus 默认的 inline-block 间距，使用 gap 控制 */
 .responsive-form .el-form-item {
   margin-right: 0;
-  margin-bottom: 0; /* 在移动端堆叠时，我们将使用 gap，所以这里也重置 */
+  margin-bottom: 0;
 }
-
-/* 移动端适配 (屏幕宽度小于 768px) */
 @media (max-width: 768px) {
   .responsive-form {
-    flex-direction: column; /* 垂直堆叠 */
-    align-items: stretch;   /* 拉伸表单项以填充容器宽度 */
-    gap: 15px; /* 增大垂直间距 */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
   }
-
   .responsive-form .el-form-item {
-    width: 100%; /* 每个表单项占据整行 */
-    margin-bottom: 0; /* 重置底部边距，因为我们使用 gap */
+    width: 100%;
+    margin-bottom: 0;
   }
-
-  /* 使表单项内的输入控件也占据100%宽度 */
   .responsive-form .el-form-item .el-input,
   .responsive-form .el-form-item .el-select,
   .responsive-form .el-form-item .el-date-editor {
     width: 100% !important;
   }
-
-  /* 对于按钮组，可以让它们靠右或居中显示 */
   .responsive-form .form-buttons {
      text-align: right;
   }
   .responsive-form .form-buttons .el-button {
-    width: auto; /* 按钮不需要全宽 */
+    width: auto;
     min-width: 100px;
   }
 }
-
-/* 优化分页在小屏幕上的显示 */
 @media (max-width: 500px) {
   .pagination {
-    justify-content: center; /* 居中显示 */
+    justify-content: center;
   }
-  /* 在非常小的屏幕上可以考虑简化分页器布局 */
   .pagination >>> .el-pagination__sizes,
   .pagination >>> .el-pagination__jumper {
     display: none;
   }
 }
-
 </style>

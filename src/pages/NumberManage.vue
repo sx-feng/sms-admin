@@ -164,10 +164,10 @@ async function loadRecords() {
       .filter(([, value]) => value !== '' && value !== null)
       .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
     
-    console.log("发送的查询参数:", params);
+    // console.log("发送的查询参数:", params);
 
     const res = await pageNumberList(params);
-    console.log("号码记录响应数据:", res);
+    // console.log("号码记录响应数据:", res);
 
     if (res?.code === 200) {
       const data = res.data;
@@ -179,7 +179,7 @@ async function loadRecords() {
       total.value = 0;
     }
   } catch (error) {
-    console.error("加载号码记录失败:", error);
+    // console.error("加载号码记录失败:", error);
     ElMessage.error('网络错误，请稍后再试');
     recordList.value = [];
     total.value = 0;

@@ -6,7 +6,8 @@
         { label: '💰 总余额', value: stats.totalPrice },
         { label: '👥 用户数', value: stats.totalUsers },
         { label: '🔢 总号码数', value: stats.totalNumbersReceived },
-        { label: '📈 总体回码率', value: stats.overallCodeRate }
+        { label: '📈 总体回码率', value: stats.overallCodeRate },
+        { label: '💰 总利润', value: stats.totalProfit }
       ]" :key="item.label" class="stat-card" shadow="hover">
         <div class="stat-value">
           {{ typeof item.value === 'number' ? item.value.toFixed(2) : item.value }}
@@ -82,6 +83,7 @@ async function loadStats() {
       stats.value = {
         totalPrice: d.totalPrice || 0,
         totalUsers: d.totalUsers || 0,
+        totalProfit: d.totalProfit || 0,
         totalNumbersReceived: d.totalNumbersReceived || 0,
         overallCodeRate: d.overallCodeRate || '0%'
       }

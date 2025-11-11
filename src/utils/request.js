@@ -24,7 +24,7 @@ export async function request(methodFlag, url, jsonData = {}, isquery = false) {
       method: methodFlag === 1 ? 'POST' : 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem('token') || '',
+        'Account-token': localStorage.getItem('token') || '',
       },
     };
 
