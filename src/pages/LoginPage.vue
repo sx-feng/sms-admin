@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-box">
-      <h2 class="title">汇科后台管理登录</h2>
+      <h2 class="title">后台管理登录</h2>
 
       <el-form
         :model="form"

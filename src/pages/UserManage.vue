@@ -120,7 +120,7 @@
     <el-dialog
       v-model="addDialogVisible"
       title="新增用户"
-      width="750px"
+      width="1000px"
       @close="closeAddDialog"
       :close-on-click-modal="false"
       destroy-on-close
@@ -183,6 +183,7 @@
           <el-table-column label="线路ID" prop="lineId"/>
           <el-table-column label="最大售价 (元)" prop="maxPrice"/>
           <el-table-column label="最低售价 (元)" prop="minPrice"/>
+          
           <el-table-column label="售价 (元)" prop="price" min-width="190"> 
             <template #default="{ row }">
               <el-input-number
@@ -203,6 +204,17 @@
               >删除</el-button>
             </template>
           </el-table-column>
+          <el-table-column label="状态" width="120" align="center">
+            <template #default="{ row }">
+              <el-switch
+                v-model="row.status"
+                active-text="启用"
+                inactive-text="禁用"
+              />
+            </template>
+          </el-table-column>
+
+          
         </el-table>
       </el-form>
       <template #footer>
@@ -354,7 +366,8 @@ async function openAddDialog() {
     projectName: proj.projectName,
     price: proj.priceMax ?? 0.00,
     maxPrice: proj.priceMax ?? 0.00,
-    minPrice: proj.priceMin ?? 0.00
+    minPrice: proj.priceMin ?? 0.00,
+    status: true 
   }));
 }
 
@@ -442,7 +455,8 @@ async function handleAddSubmit() {
           projectPrices: addForm.value.projectPrices.map(p => ({
             projectId: p.projectId,
             lineId: p.lineId, 
-            price: p.price
+            price: p.price,
+            status: p.status
           }))
         };
         

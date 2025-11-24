@@ -75,6 +75,15 @@
             />
           </template>
         </el-table-column>
+        <el-table-column label="状态" align="center" width="120">
+          <template #default="{ row }">
+            <el-switch
+              v-model="row.status"
+              active-text="启用"
+              inactive-text="禁用"
+            />
+          </template>
+        </el-table-column>
       </el-table>
       <!-- ============================================================== -->
 
@@ -133,18 +142,18 @@ const selectedTemplateId = ref(null)
 // 表单校验规则 (保持不变)
 const rules = reactive({
   userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [
-    {
-      validator: (rule, value, callback) => {
-        if (value && value.length < 6) {
-          callback(new Error('密码长度至少为 6 位'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur'
-    }
-  ],
+  // password: [
+  //   {
+  //     validator: (rule, value, callback) => {
+  //       if (value && value.length < 6) {
+  //         callback(new Error('密码长度至少为 6 位'))
+  //       } else {
+  //         callback()
+  //       }
+  //     },
+  //     trigger: 'blur'
+  //   }
+  // ],
   confirmPassword: [
     {
       validator: (rule, value, callback) => {
@@ -226,30 +235,32 @@ async function loadInitialData(userId) {
       const key = `${globalProject.projectId}-${globalProject.lineId}`;
       const existingUserPrice = userPriceMap.get(key);
 
-      if (existingUserPrice) {
+     if (existingUserPrice) {
         // --- 情况一：用户已存在该项目的配置 ---
-        // 合并数据：使用用户的价格，并从全局项目中更新最新信息
         return {
           ...existingUserPrice,
-          projectName: globalProject.projectName, // 确保项目名是最新的
-          price: existingUserPrice.agentPrice,    // 使用用户已有的代理价作为编辑售价
-          maxPrice: globalProject.priceMax,       // 从全局项目获取最高价
-          minPrice: globalProject.priceMin,       // 从全局项目获取最低价
-          costPrice: globalProject.costPrice,          // 确保成本价也是最新的
+          projectName: globalProject.projectName,
+          price: existingUserPrice.agentPrice,
+          maxPrice: globalProject.priceMax,
+          minPrice: globalProject.priceMin,
+          costPrice: globalProject.costPrice,
+          // 【修改】确保 status 字段被正确赋值。使用 ?? true 作为兜底，防止数据库存了 null
+          status: existingUserPrice.status ?? true, 
         };
       } else {
-        // --- 情况二：用户不存在该项目的配置 (新需求) ---
-        // 创建一个新的默认配置，售价默认为最高价
+        // --- 情况二：用户不存在该项目的配置 ---
         return {
-          id: null, // 这是一个新条目，没有数据库ID
-          projectTableId: null, // 同上
+          id: null,
+          projectTableId: null,
           projectId: globalProject.projectId,
           lineId: globalProject.lineId,
           projectName: globalProject.projectName,
           costPrice: globalProject.costPrice,
           maxPrice: globalProject.priceMax,
           minPrice: globalProject.priceMin,
-          price: globalProject.priceMax, // 【核心】默认价格设置为最高售价
+          price: globalProject.priceMax,
+          // 【修改】为新增的默认配置项设置 status 为 true (启用)
+          status: true,
         };
       }
     });
@@ -302,9 +313,9 @@ async function onSave() {
     // 1. 准备更新用户基本信息的 Payload
     const userPayload = {
       id: form.id,
-      userName: form.userName,
+      username: form.userName,
       status: form.status,
-      isAgent: form.isAgent,
+      isAgent: form.isAgent === 1 ? true : false,
     }
     if (form.password) {
       userPayload.password = form.password
@@ -324,6 +335,7 @@ async function onSave() {
         costPrice: p.costPrice,
         maxPrice: p.maxPrice,
         minPrice: p.minPrice,
+        status: p.status, 
       }))
     }
 
