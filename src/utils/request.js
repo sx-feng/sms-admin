@@ -1,7 +1,7 @@
 // request.js
 // const baseURL = 'http://192.168.110.104:8026';
-const baseURL = 'https://api.huikecode.com';
-// const baseURL = 'https://api.daguicode.com';
+// const baseURL = 'https://api.huikecode.com';
+const baseURL = 'https://api.daguicode.com';
 /**
  * 通用请求方法（强化版）
  * - 自动防止 JSON 解析错误
@@ -36,14 +36,14 @@ export async function request(methodFlag, url, jsonData = {}, isquery = false) {
 
     // HTTP 状态检查
     if (!response.ok) {
-      console.error('❌ HTTP 状态错误:', response.status, finalUrl);
+      console.error('HTTP 状态错误:', response.status, finalUrl);
       return { ok: false, code: response.status, message: `HTTP错误 ${response.status}`, data: null };
     }
 
     // 读取文本
     const text = await response.text();
     if (!text) {
-      console.warn('⚠️ 空响应体:', finalUrl);
+      console.warn('空响应体:', finalUrl);
       return { ok: false, code: 0, message: '服务器未返回数据', data: null };
     }
 
@@ -52,7 +52,7 @@ export async function request(methodFlag, url, jsonData = {}, isquery = false) {
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error('⚠️ JSON 解析失败:', text);
+      console.error('JSON 解析失败:', text);
       return { ok: false, code: 0, message: '返回数据不是 JSON 格式', data: text };
     }
 
@@ -61,10 +61,11 @@ export async function request(methodFlag, url, jsonData = {}, isquery = false) {
       ok: data.code === 200 || data.ok === true,
       code: data.code || 0,
       message: data.message || '',
-      data: data.data || null,
+      data: data.data || data || null,
+      raw: data 
     };
   } catch (err) {
-    console.error('🌐 网络或解析异常:', err);
+    console.error('网络或解析异常:', err);
     return { ok: false, code: -1, message: '网络异常或服务器错误', data: null };
   }
 }

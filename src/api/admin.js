@@ -266,3 +266,79 @@ export const deletePriceTemplate = (templateId) => request(0, `/api/admin/price-
 }
  */
 export const getSubordinateUserProjectPrices = (userId) => request(0, '/api/admin/user/project-prices/get', { userId }, true);
+
+
+
+/**
+ *  const res = await axios.post('/request/url', {
+    data: JSON.stringify(proxyPayload) 
+  })
+ */
+export const ApiRequest = (proxyPayload) => request(1, '/api/admin/request/url', { data: JSON.stringify(proxyPayload) });
+
+// export function getAllAgents() {
+//   return request({
+//     url: '/api/admin/listAllAgents',
+//     method: 'get'
+//   })
+// }
+
+export function getAllAgents() {
+  return request(0, '/api/admin/listAllAgents')
+}
+
+/**
+ * 管理员-获取用户线路统计数据
+  POST /api/admin/stats/user-line
+  接口ID：383783499
+  接口地址：https://app.apifox.com/link/project/7230479/apis/api-383783499
+  {
+    "page": 1,
+    "size": 10,
+    "userName": "string",
+    "projectId": "string",
+    "startTime": "string",
+    "endTime": "string"
+}
+    返回参数：{
+    "code": 200,
+    "message": "查询成功",
+    "data": {
+        "records": [
+            {
+                "userId": 11,
+                "userName": "zz",
+                "projectId": "6",
+                "lineId": 2,
+                "totalNumbers": 97,
+                "totalCodes": 15,
+                "successRate": "15.46%"
+            },
+            {
+                "userId": 11,
+                "userName": "zz",
+                "projectId": "12",
+                "lineId": 12,
+                "totalNumbers": 86,
+                "totalCodes": 23,
+                "successRate": "26.74%"
+            },
+            {
+                "userId": 11,
+                "userName": "zz",
+                "projectId": "14",
+                "lineId": 14,
+                "totalNumbers": 33,
+                "totalCodes": 5,
+                "successRate": "15.15%"
+            }
+        ],
+        "total": 0,
+        "size": -1,
+        "current": 1,
+        "pages": 0
+    }
+}
+ */
+export const getUserLineStats = (params) => request(1, '/api/admin/stats/user-line', params);
+

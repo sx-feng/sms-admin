@@ -67,6 +67,11 @@ const routes = [
     path:'/projectPriceTemplate',
     name:'ProjectPriceTemplate',
     component: () => import('@/pages/UserProjectPriceTemplate.vue')
+  },
+  {
+    path:'/userProjectLineStates',
+    name:'UserProjectLineStates',
+    component:() =>import('@/pages/userProjectLineStates.vue')
   }
 
 ]

@@ -21,11 +21,24 @@
             <el-input v-model="form.confirmPassword" placeholder="再次输入新密码" />
           </el-form-item>
         </el-col>
-        <el-col :span="6">
-            <el-form-item label="用户状态">
-              <el-switch v-model="form.status" :active-value="0" :inactive-value="1" />
-            </el-form-item>
-        </el-col>
+<el-col >
+  <el-form-item label="用户状态">
+    <el-button-group>
+      <el-button 
+        :type="form.status === 0 ? 'success' : ''" 
+        @click="form.status = 0"
+      >
+        启用
+      </el-button>
+      <el-button 
+        :type="form.status === 1 ? 'danger' : ''" 
+        @click="form.status = 1"
+      >
+        禁用
+      </el-button>
+    </el-button-group>
+  </el-form-item>
+</el-col>
         <el-col :span="6">
             <el-form-item label="代理权限">
               <el-switch v-model="form.isAgent" :active-value="1" :inactive-value="0" />

@@ -8,7 +8,7 @@
       <h2>用户管理</h2>
       <div class="actions">
         <el-input v-model="searchUserName" placeholder="按用户名模糊查询" size="small" clearable style="width: 180px; margin-right: 8px;" @clear="handleSearch" />
-        <el-input v-model="searchParentId" placeholder="查询上级ID的用户" size="small" clearable style="width: 180px; margin-right: 8px;" />
+        <el-input v-model="searchParentId" placeholder="通过用户名查询下级" size="small" clearable style="width: 180px; margin-right: 8px;" />
         <el-button type="primary" size="small" @click="handleSearch" :icon="Search">查询</el-button>
         <el-button type="success" size="small" @click="openAddDialog" :icon="Plus">新增用户</el-button>
       </div>
@@ -18,6 +18,13 @@
     <el-table :data="tableData" border v-loading="loading" style="width: 100%">
       <el-table-column prop="id" label="用户ID" fixed />
       <el-table-column prop="userName" label="用户名" width="150" />
+      <!-- 上级用户名：为null就显示无上级 -->
+      <el-table-column prop="parentName" label="上级用户名" width="150">
+        <template #default="{ row }">
+          <span v-if="row.parentName">{{ row.parentName }}</span>
+          <span v-else>无上级</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="balance" label="余额" width="120">
         <template #default="{ row }">
           <span>¥ {{ Number(row.balance).toFixed(2) }}</span>
@@ -39,6 +46,21 @@
             :loading="row.agentLoading"
             @change="toggleAgent(row)"
           />
+        </template>
+      </el-table-column>
+
+      <!-- 最后登录时间 -->
+      <el-table-column prop="lastLoginTime" label="最后登录时间"  align="center">
+        <template #default="{ row }">
+          <span v-if="row.lastLoginTime">{{ new Date(row.lastLoginTime).toLocaleString() }}</span>
+          <span v-else>从未登录</span>
+        </template>
+      </el-table-column>
+
+      <!-- 创建时间 -->
+      <el-table-column prop="createTime" label="注册时间"  align="center">
+        <template #default="{ row }">
+          <span>{{ new Date(row.createTime).toLocaleString() }}</span>
         </template>
       </el-table-column>
       
@@ -125,6 +147,11 @@
       :close-on-click-modal="false"
       destroy-on-close
     >
+    <div style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+    <el-button type="warning" plain size="small" @click="handlePasteFromLocal">
+      粘贴上次创建的账号密码
+    </el-button>
+  </div>
       <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -138,7 +165,29 @@
             </el-form-item>
           </el-col>
         </el-row>
+        
         <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="所属代理" prop="parentId">
+              <el-select 
+                v-model="addForm.parentId" 
+                placeholder="默认归属平台(无上级)" 
+                clearable 
+                filterable
+                style="width: 100%"
+              >
+                <!-- 选项：平台直属 -->
+                <el-option label="平台直属 (无代理)" :value="0" />
+                <!-- 循环代理列表 -->
+                <el-option
+                  v-for="agent in agentList"
+                  :key="agent.id"
+                  :label="agent.userName + ' (ID:' + agent.id + ')'"
+                  :value="agent.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="初始余额" prop="initialBalance">
               <el-input-number v-model="addForm.initialBalance" :precision="2" :step="100" :min="0" style="width: 100%;" />
@@ -235,7 +284,7 @@ import { Search, Plus } from '@element-plus/icons-vue';
 import RecordDialog from '@/components/RecordDialog.vue';
 import EditDialog from '@/components/EditDialog.vue';
 // =========== [MODIFIED] 增加导入 getAllPriceTemplates 方法 ===========
-import { listUsers, updateUser, deleteUser, rechargeUser, deductUser, createUser, getProjectLis, getAllPriceTemplates } from '@/api/admin';
+import { listUsers,getAllAgents, updateUser, deleteUser, rechargeUser, deductUser, createUser, getProjectLis, getAllPriceTemplates } from '@/api/admin';
 
 // 表格和分页状态
 const tableData = ref([]);
@@ -256,20 +305,26 @@ const projectLoading = ref(false);
 const addFormRef = ref(null);
 const allProjects = ref([]); 
 
+
 // =========== [MODIFIED] 新增用于价格模板的状态 ===========
 const priceTemplates = ref([]);       // 存储所有价格模板
 const templatesLoading = ref(false);  // 模板加载状态
 const selectedTemplateId = ref(null); // 选中的模板ID
 // ====================================================
 
+// 定义存储代理列表的变量
+const agentList = ref([]); 
+const agentLoading = ref(false);
+
+// 修改表单初始数据，增加 parentId
 const getInitialAddForm = () => ({
   username: '',
   password: '',
+  parentId: null, // <--- 新增：所属代理ID
   initialBalance: 0.00,
   isAgent: false,
   projectPrices: [] 
 });
-
 const addForm = ref(getInitialAddForm());
 
 // 主表单的校验规则
@@ -301,6 +356,84 @@ const fundFormRules = {
   ],
 };
 
+
+/**
+ * 获取所有代理商列表
+ */
+async function fetchAgents() {
+  agentLoading.value = true;
+  try {
+    const res = await getAllAgents();
+    agentList.value = res.data || [];
+  } catch (error) {
+    ElMessage.error('获取代理列表失败');
+  } finally {
+    agentLoading.value = false;
+  }
+}
+
+/**
+ * 核心逻辑：保存到本地并弹窗提示复制
+ */
+async function handleCopyAndAlert(username, password) {
+  // 1. 保存到本地存储 (用于粘贴功能)
+  const creds = { username, password };
+  localStorage.setItem('LAST_USER_CREDS', JSON.stringify(creds));
+
+  // 2. 尝试写入剪贴板
+  const textToCopy = `账号：${username}\n密码：${password}`;
+  try {
+    await navigator.clipboard.writeText(textToCopy);
+    ElMessage.success('账号密码已自动复制到剪贴板！');
+  } catch (err) {
+    console.error('自动复制失败', err);
+  }
+
+  // 3. 弹出确认框显示详情 (双重保险)
+  ElMessageBox.alert(
+    `
+    <div style="text-align: center; font-size: 16px;">
+      <p><strong>操作成功！</strong></p>
+      <div style="background: #f5f7fa; padding: 15px; border-radius: 5px; margin: 10px 0; text-align: left;">
+        <p>账号：<span style="color: #409EFF; font-weight: bold;">${username}</span></p>
+        <p>密码：<span style="color: #F56C6C; font-weight: bold;">${password}</span></p>
+      </div>
+      <p style="font-size: 12px; color: #909399;">已自动复制，也可点击下方按钮再次复制</p>
+    </div>
+    `,
+    '账号信息',
+    {
+      dangerouslyUseHTMLString: true,
+      confirmButtonText: '复制并关闭',
+      callback: () => {
+        // 点击关闭时再次触发复制，确保兼容性
+        navigator.clipboard.writeText(textToCopy);
+      }
+    }
+  );
+}
+
+/**
+ * 核心逻辑：从本地存储粘贴
+ */
+function handlePasteFromLocal() {
+  const cached = localStorage.getItem('LAST_USER_CREDS');
+  if (!cached) {
+    ElMessage.warning('暂无最近操作的账号记录');
+    return;
+  }
+  try {
+    const { username, password } = JSON.parse(cached);
+    // 填充到新增表单
+    addForm.value.username = username;
+    addForm.value.password = password;
+    ElMessage.success('已自动填充上次的账号密码');
+  } catch (e) {
+    ElMessage.error('读取记录失败');
+  }
+}
+
+
 /**
  * 获取用户列表
  */
@@ -310,7 +443,7 @@ async function getUserList() {
     const params = {
       page: page.value,
       size: pageSize.value,
-      parentId: searchParentId.value || "",
+      parentName: searchParentId.value || "",
       userName: searchUserName.value || "",
     };
     const res = await listUsers(params);
@@ -348,13 +481,17 @@ function handleSearch() {
 async function openAddDialog() {
   addDialogVisible.value = true;
   
-  // 并行获取项目列表和价格模板
+  // 并行获取项目、模板、代理列表
   const promises = [];
   if (allProjects.value.length === 0) {
     promises.push(fetchProjects());
   }
   if (priceTemplates.value.length === 0) {
     promises.push(fetchPriceTemplates());
+  }
+  // 每次打开都刷新代理列表，或者只在为空时加载，这里建议每次加载或为空加载
+  if (agentList.value.length === 0) {
+    promises.push(fetchAgents());
   }
   await Promise.all(promises);
   
@@ -438,20 +575,22 @@ function applySelectedTemplate(templateId) {
 }
 // ====================================================
 
-/**
- * 处理新增用户提交
- */
 async function handleAddSubmit() {
   if (!addFormRef.value) return;
   await addFormRef.value.validate(async (valid) => {
     if (valid) {
       addSubmitLoading.value = true;
       try {
+        // 保存一下当前的密码，因为提交后可能会清空表单
+        const currentPassword = addForm.value.password;
+        const currentUsername = addForm.value.username;
+
         const payload = {
           username: addForm.value.username,
           password: addForm.value.password,
           initialBalance: addForm.value.initialBalance,
           isAgent: addForm.value.isAgent,
+          parentId: addForm.value.parentId,
           projectPrices: addForm.value.projectPrices.map(p => ({
             projectId: p.projectId,
             lineId: p.lineId, 
@@ -464,12 +603,17 @@ async function handleAddSubmit() {
         if (!eee || eee.ok === false) {
           throw new Error(eee?.message || '新增用户失败');
         }
-        ElMessage.success('新增用户成功');
-        addDialogVisible.value = false;
-        await getUserList();
+        
+        // --- 成功后调用复制弹窗逻辑 ---
+        addDialogVisible.value = false; // 先关闭输入框
+        await getUserList(); // 刷新列表
+        
+        // 弹出复制框 (关键修改)
+        handleCopyAndAlert(currentUsername, currentPassword);
+
       } catch (error) {
         console.error(error);
-        ElMessage.error(error.message || '新增用户失败，请检查网络或联系管理员');
+        ElMessage.error(error.message || '新增用户失败');
       } finally {
         addSubmitLoading.value = false;
       }
