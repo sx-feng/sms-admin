@@ -1,7 +1,7 @@
 // request.js
-// const baseURL = 'http://192.168.110.104:8026';
+const baseURL = 'http://192.168.110.104:8026';
 // const baseURL = 'https://api.huikecode.com';
-const baseURL = 'https://api.daguicode.com';
+// const baseURL = 'https://api.daguicode.com';
 /**
  * 通用请求方法（强化版）
  * - 自动防止 JSON 解析错误

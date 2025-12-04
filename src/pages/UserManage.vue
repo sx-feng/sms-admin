@@ -14,17 +14,31 @@
       </div>
     </div>
 
-    <!-- 用户数据表格 -->
+    <!-- 用户数据表格 (保持不变) -->
     <el-table :data="tableData" border v-loading="loading" style="width: 100%">
-      <el-table-column prop="id" label="用户ID" fixed />
+      <el-table-column prop="id" label="用户ID" fixed width="80" />
       <el-table-column prop="userName" label="用户名" width="150" />
-      <!-- 上级用户名：为null就显示无上级 -->
       <el-table-column prop="parentName" label="上级用户名" width="150">
         <template #default="{ row }">
           <span v-if="row.parentName">{{ row.parentName }}</span>
           <span v-else>无上级</span>
         </template>
       </el-table-column>
+      <el-table-column prop="templateId" label="价格模板ID" width="100" align="center">
+        
+         <template #default="{ row }">
+           <el-tag type="info" v-if="row.templateId">{{ row.templateId }}</el-tag>
+           <span v-else class="text-gray">未配置</span>
+         </template>
+      </el-table-column>
+      <!-- 模板名称 templateName -->
+      <el-table-column prop="templateName" label="价格模板名称" min-width="150" >
+        <template #default="{ row }">
+          <span v-if="row.templateName">{{ row.templateName }}</span>
+          <span v-else class="text-gray">未配置</span>
+        </template>
+      </el-table-column>
+
       <el-table-column prop="balance" label="余额" width="120">
         <template #default="{ row }">
           <span>¥ {{ Number(row.balance).toFixed(2) }}</span>
@@ -48,42 +62,26 @@
           />
         </template>
       </el-table-column>
-
-      <!-- 最后登录时间 -->
-      <el-table-column prop="lastLoginTime" label="最后登录时间"  align="center">
+      <el-table-column prop="lastLoginTime" label="最后登录时间"  align="center" width="180">
         <template #default="{ row }">
           <span v-if="row.lastLoginTime">{{ new Date(row.lastLoginTime).toLocaleString() }}</span>
           <span v-else>从未登录</span>
         </template>
       </el-table-column>
-
-      <!-- 创建时间 -->
-      <el-table-column prop="createTime" label="注册时间"  align="center">
+      <el-table-column prop="createTime" label="注册时间"  align="center" width="180">
         <template #default="{ row }">
           <span>{{ new Date(row.createTime).toLocaleString() }}</span>
         </template>
       </el-table-column>
-      
       <el-table-column label="最近24小时统计" align="center">
-        <el-table-column prop="dailyGetCount" label="取号次数" width="110" align="center" />
-        <el-table-column prop="dailyCodeCount" label="成功次数" width="110" align="center" />
+        <el-table-column prop="dailyGetCount" label="取号次数" width="100" align="center" />
+        <el-table-column prop="dailyCodeCount" label="成功次数" width="100" align="center" />
         <el-table-column prop="dailyCodeRate" label="回码率" width="100" align="center">
            <template #default="{ row }">
               {{ (row.dailyCodeRate * 100).toFixed(1) }}%
            </template>
         </el-table-column>
       </el-table-column>
-
-      <el-table-column label="累计统计" align="center">
-        <el-table-column prop="totalGetCount" label="总取号" width="110" align="center" />
-        <el-table-column prop="totalCodeCount" label="总成功" width="110" align="center" />
-        <el-table-column prop="totalCodeRate" label="总回码率" width="110" align="center">
-          <template #default="{ row }">
-              {{ (row.totalCodeRate * 100).toFixed(1) }}%
-           </template>
-        </el-table-column>
-      </el-table-column>
-      
       <el-table-column label="操作" width="350" fixed="right" align="center">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="openEditDialog(row)">编辑</el-button>
@@ -109,6 +107,7 @@
     <EditDialog v-model="editDialogVisible" :user="currentUser" @updated="getUserList" />
     <RecordDialog v-model="recordDialogVisible" :user="currentUser" />
 
+    <!-- 资金弹窗 (保持不变) -->
     <el-dialog
       v-model="fundDialogVisible"
       :title="fundForm.action === 'recharge' ? '用户充值' : '用户扣款'"
@@ -142,17 +141,18 @@
     <el-dialog
       v-model="addDialogVisible"
       title="新增用户"
-      width="1000px"
+      width="750px" 
       @close="closeAddDialog"
       :close-on-click-modal="false"
       destroy-on-close
     >
-    <div style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
-    <el-button type="warning" plain size="small" @click="handlePasteFromLocal">
-      粘贴上次创建的账号密码
-    </el-button>
-  </div>
-      <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="100px">
+      <div style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+        <el-button type="warning" plain size="small" @click="handlePasteFromLocal">
+          粘贴上次创建的账号密码
+        </el-button>
+      </div>
+      
+      <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="110px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="用户名" prop="username">
@@ -161,7 +161,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="密码" prop="password">
-              <el-input v-model="addForm.password"  placeholder="请输入密码"  />
+              <el-input v-model="addForm.password"  placeholder="请输入密码" show-password />
             </el-form-item>
           </el-col>
         </el-row>
@@ -176,9 +176,7 @@
                 filterable
                 style="width: 100%"
               >
-                <!-- 选项：平台直属 -->
                 <el-option label="平台直属 (无代理)" :value="0" />
-                <!-- 循环代理列表 -->
                 <el-option
                   v-for="agent in agentList"
                   :key="agent.id"
@@ -193,23 +191,26 @@
               <el-input-number v-model="addForm.initialBalance" :precision="2" :step="100" :min="0" style="width: 100%;" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="代理权限" prop="isAgent">
-              <el-switch v-model="addForm.isAgent" />
-            </el-form-item>
-          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+            <el-col :span="12">
+                <el-form-item label="代理权限" prop="isAgent">
+                  <el-switch v-model="addForm.isAgent" active-text="是" inactive-text="否" />
+                </el-form-item>
+            </el-col>
         </el-row>
         
-        <el-divider>项目价格配置</el-divider>
+        <el-divider>项目与价格配置</el-divider>
 
-        <!-- =========== [MODIFIED] 价格模板区域更新 =========== -->
-        <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 10px;">
+        <!-- 价格模板选择 (必填) -->
+        <el-form-item label="价格模板" prop="templateId">
           <el-select
-            v-model="selectedTemplateId"
-            placeholder="请选择一个价格模板"
+            v-model="addForm.templateId"
+            placeholder="请选择一个价格模板 (必选)"
             clearable
-            style="width: 250px;"
-            @change="applySelectedTemplate"
+            filterable
+            style="width: 100%;"
             :loading="templatesLoading"
           >
             <el-option
@@ -219,52 +220,82 @@
               :value="template.id"
             />
           </el-select>
-          <span style="color: #909399; font-size: 12px;">选择模板后将自动填充下方匹配的项目售价。</span>
+          <div style="font-size: 12px; color: #909399; margin-top: 5px;">
+             修改模板将重置下方列表。您可以针对特定项目进行禁用操作（加入黑名单）。
+          </div>
+        </el-form-item>
+
+        <!-- [修改] 价格预览 + 黑名单配置表格 -->
+        <div v-if="addForm.templateId" style="padding: 0 20px 20px 20px;">
+          <!-- 搜索框 -->
+          <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+             <span style="font-size: 13px; color: #409EFF; font-weight: bold;">
+              <el-icon style="vertical-align: middle; margin-right: 4px;"><InfoFilled /></el-icon>
+              权限与价格预览
+             </span>
+             <el-input
+                v-model="addSearchKeyword"
+                placeholder="搜索项目ID..."
+                prefix-icon="Search"
+                style="width: 250px;"
+                size="small"
+                clearable
+              />
+          </div>
+
+          <el-table 
+            :data="filteredAddPreviewPrices" 
+            border 
+            stripe
+            size="small" 
+            height="300"
+            v-loading="previewLoading"
+            empty-text="该模板暂无配置项"
+          >
+            <el-table-column prop="projectName" label="项目名称" min-width="120" show-overflow-tooltip/>
+            <el-table-column prop="projectId" label="项目ID" width="80" align="center"/>
+            <el-table-column prop="lineId" label="线路" width="70" align="center"/>
+            
+            <el-table-column prop="price" label="模板售价" width="90" align="center">
+               <template #default="{ row }">
+                 <span style="color: #E6A23C; font-weight: bold;">{{ row.price }}</span>
+               </template>
+            </el-table-column>
+            
+            <!-- 状态列 -->
+            <el-table-column label="用户项目权限" width="90" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="isAddBlacklisted(row)" type="danger" size="small" effect="dark">已禁用</el-tag>
+                <el-tag v-else type="success" size="small" effect="plain">正常</el-tag>
+              </template>
+            </el-table-column>
+
+            <!-- 操作列 -->
+            <el-table-column label="操作" width="100" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-button 
+                  v-if="!isAddBlacklisted(row)"
+                  type="danger" 
+                  link 
+                  size="small" 
+                  @click="toggleAddBlacklist(row)"
+                >
+                  加入黑名单
+                </el-button>
+                <el-button 
+                  v-else
+                  type="primary" 
+                  link 
+                  size="small" 
+                  @click="toggleAddBlacklist(row)"
+                >
+                  移除黑名单
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
-        <!-- =============================================== -->
 
-        <p v-if="projectLoading" style="text-align: center; color: #909399;">项目列表加载中...</p>
-        <p v-else-if="!addForm.projectPrices || addForm.projectPrices.length === 0" style="text-align: center; color: #909399;">暂无可配置的项目</p>
-        
-        <el-table v-else :data="addForm.projectPrices" border max-height="300px">
-          <el-table-column label="项目名称" prop="projectName" />
-          <el-table-column label="项目ID" prop="projectId"/>
-          <el-table-column label="线路ID" prop="lineId"/>
-          <el-table-column label="最大售价 (元)" prop="maxPrice"/>
-          <el-table-column label="最低售价 (元)" prop="minPrice"/>
-          
-          <el-table-column label="售价 (元)" prop="price" min-width="190"> 
-            <template #default="{ row }">
-              <el-input-number
-                v-model="row.price"
-                :precision="2"
-                :step="0.1"
-                :min="0"
-                placeholder="设置售价"
-                style="width: 100%;"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="80" align="center">
-            <template #default="{ $index }">
-              <el-button 
-                type="danger" 
-                @click="handleDeleteProjectPrice($index)" 
-              >删除</el-button>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="120" align="center">
-            <template #default="{ row }">
-              <el-switch
-                v-model="row.status"
-                active-text="启用"
-                inactive-text="禁用"
-              />
-            </template>
-          </el-table-column>
-
-          
-        </el-table>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -277,14 +308,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, reactive } from 'vue'; 
+import { ref, onMounted, watch, reactive, computed } from 'vue'; 
 import { ElMessageBox, ElMessage } from 'element-plus';
-import { Search, Plus } from '@element-plus/icons-vue';
+import { Search, Plus, InfoFilled } from '@element-plus/icons-vue'; // 引入 InfoFilled
 
 import RecordDialog from '@/components/RecordDialog.vue';
 import EditDialog from '@/components/EditDialog.vue';
-// =========== [MODIFIED] 增加导入 getAllPriceTemplates 方法 ===========
-import { listUsers,getAllAgents, updateUser, deleteUser, rechargeUser, deductUser, createUser, getProjectLis, getAllPriceTemplates } from '@/api/admin';
+// 移除 getProjectLis，因为不再需要加载全量项目
+import { getTemplateItems ,listUsers, getAllAgents, updateUser, deleteUser, rechargeUser, deductUser, createUser, getAllPriceTemplates } from '@/api/admin';
 
 // 表格和分页状态
 const tableData = ref([]);
@@ -301,33 +332,35 @@ const currentUser = ref(null);
 // ==================== 新增用户逻辑 (START) ====================
 const addDialogVisible = ref(false);
 const addSubmitLoading = ref(false);
-const projectLoading = ref(false);
+// const projectLoading = ref(false); // 已移除
 const addFormRef = ref(null);
-const allProjects = ref([]); 
+// const allProjects = ref([]); // 已移除
 
+// 价格模板相关
+const priceTemplates = ref([]);       
+const templatesLoading = ref(false); 
 
-// =========== [MODIFIED] 新增用于价格模板的状态 ===========
-const priceTemplates = ref([]);       // 存储所有价格模板
-const templatesLoading = ref(false);  // 模板加载状态
-const selectedTemplateId = ref(null); // 选中的模板ID
-// ====================================================
-
-// 定义存储代理列表的变量
+// 代理列表
 const agentList = ref([]); 
 const agentLoading = ref(false);
 
-// 修改表单初始数据，增加 parentId
+const previewPrices = ref([]); // 用于存储预览的价格数据
+const previewLoading = ref(false); 
+const addSearchKeyword = ref(''); // [新增] 搜索关键词
+
+// 初始化新增表单
 const getInitialAddForm = () => ({
   username: '',
   password: '',
-  parentId: null, // <--- 新增：所属代理ID
+  parentId: null,
   initialBalance: 0.00,
   isAgent: false,
-  projectPrices: [] 
+  templateId: null, // 必填：关联模板ID
+  blacklistedProjects: [] // 选填：黑名单列表 ["pid-lid", ...]
 });
 const addForm = ref(getInitialAddForm());
 
-// 主表单的校验规则
+// 校验规则
 const addFormRules = reactive({
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
@@ -335,27 +368,52 @@ const addFormRules = reactive({
     { required: true, message: '请输入初始余额', trigger: 'blur' },
     { type: 'number', min: 0, message: '余额不能为负数', trigger: 'blur' },
   ],
+  templateId: [{ required: true, message: '请选择价格模板', trigger: 'change' }]
 });
+
+// [新增] 计算属性：过滤预览表格
+const filteredAddPreviewPrices = computed(() => {
+  if (!addSearchKeyword.value) return previewPrices.value;
+  const kw = addSearchKeyword.value.toLowerCase();
+  return previewPrices.value.filter(item => {
+    return (
+      (item.projectName && item.projectName.toLowerCase().includes(kw)) ||
+      String(item.projectId).includes(kw) ||
+      String(item.lineId).includes(kw)
+    );
+  });
+});
+
+// [新增] 判断是否在黑名单
+function isAddBlacklisted(row) {
+  const key = `${row.projectId}-${row.lineId}`;
+  return addForm.value.blacklistedProjects.includes(key);
+}
+
+// [新增] 切换黑名单状态
+function toggleAddBlacklist(row) {
+  const key = `${row.projectId}-${row.lineId}`;
+  const index = addForm.value.blacklistedProjects.indexOf(key);
+  if (index > -1) {
+    addForm.value.blacklistedProjects.splice(index, 1);
+  } else {
+    addForm.value.blacklistedProjects.push(key);
+  }
+}
 
 // 弹窗状态
 const editDialogVisible = ref(false);
 const recordDialogVisible = ref(false);
-
-// 充值/扣款弹窗的状态
 const fundDialogVisible = ref(false);
 const fundSubmitLoading = ref(false);
 const fundFormRef = ref(null);
-const fundForm = ref({
-  action: 'recharge',
-  amount: undefined,
-});
+const fundForm = ref({ action: 'recharge', amount: undefined });
 const fundFormRules = {
   amount: [
     { required: true, message: '请输入操作金额', trigger: 'blur' },
     { type: 'number', min: 0.01, message: '金额必须大于0', trigger: 'blur' },
   ],
 };
-
 
 /**
  * 获取所有代理商列表
@@ -372,15 +430,10 @@ async function fetchAgents() {
   }
 }
 
-/**
- * 核心逻辑：保存到本地并弹窗提示复制
- */
+// 复制和粘贴逻辑 (保持不变)...
 async function handleCopyAndAlert(username, password) {
-  // 1. 保存到本地存储 (用于粘贴功能)
   const creds = { username, password };
   localStorage.setItem('LAST_USER_CREDS', JSON.stringify(creds));
-
-  // 2. 尝试写入剪贴板
   const textToCopy = `账号：${username}\n密码：${password}`;
   try {
     await navigator.clipboard.writeText(textToCopy);
@@ -388,8 +441,6 @@ async function handleCopyAndAlert(username, password) {
   } catch (err) {
     console.error('自动复制失败', err);
   }
-
-  // 3. 弹出确认框显示详情 (双重保险)
   ElMessageBox.alert(
     `
     <div style="text-align: center; font-size: 16px;">
@@ -406,16 +457,12 @@ async function handleCopyAndAlert(username, password) {
       dangerouslyUseHTMLString: true,
       confirmButtonText: '复制并关闭',
       callback: () => {
-        // 点击关闭时再次触发复制，确保兼容性
         navigator.clipboard.writeText(textToCopy);
       }
     }
   );
 }
 
-/**
- * 核心逻辑：从本地存储粘贴
- */
 function handlePasteFromLocal() {
   const cached = localStorage.getItem('LAST_USER_CREDS');
   if (!cached) {
@@ -424,7 +471,6 @@ function handlePasteFromLocal() {
   }
   try {
     const { username, password } = JSON.parse(cached);
-    // 填充到新增表单
     addForm.value.username = username;
     addForm.value.password = password;
     ElMessage.success('已自动填充上次的账号密码');
@@ -432,7 +478,6 @@ function handlePasteFromLocal() {
     ElMessage.error('读取记录失败');
   }
 }
-
 
 /**
  * 获取用户列表
@@ -457,19 +502,28 @@ async function getUserList() {
   }
 }
 
-/**
- * 从待提交的项目价格列表中移除一个项目
- */
-function handleDeleteProjectPrice(index) {
-  addForm.value.projectPrices.splice(index, 1);
-  ElMessage.info('已移除该项目价格配置');
-}
-
 watch([page, pageSize], getUserList);
 
 /**
- * 处理搜索
+ * 监听新增表单中 templateId 的变化
  */
+watch(() => addForm.value.templateId, async (newVal) => {
+  if (newVal) {
+    previewLoading.value = true;
+    try {
+      const res = await getTemplateItems(newVal);
+      previewPrices.value = res.data || [];
+    } catch (e) {
+      console.error(e);
+      previewPrices.value = [];
+    } finally {
+      previewLoading.value = false;
+    }
+  } else {
+    previewPrices.value = []; 
+  }
+});
+
 function handleSearch() {
   page.value = 1; 
   getUserList();
@@ -481,50 +535,22 @@ function handleSearch() {
 async function openAddDialog() {
   addDialogVisible.value = true;
   
-  // 并行获取项目、模板、代理列表
   const promises = [];
-  if (allProjects.value.length === 0) {
-    promises.push(fetchProjects());
-  }
+  // 移除：获取项目列表（不再需要）
+  // if (allProjects.value.length === 0) { ... }
+  
+  // 获取价格模板（必填）
   if (priceTemplates.value.length === 0) {
     promises.push(fetchPriceTemplates());
   }
-  // 每次打开都刷新代理列表，或者只在为空时加载，这里建议每次加载或为空加载
-  if (agentList.value.length === 0) {
-    promises.push(fetchAgents());
-  }
-  await Promise.all(promises);
+  // 获取代理
+  promises.push(fetchAgents());
   
-  // 基于获取到的项目列表，初始化价格配置
-  addForm.value.projectPrices = allProjects.value.map(proj => ({
-    dbId: proj.id,
-    projectId: proj.projectId,
-    lineId: proj.lineId,
-    projectName: proj.projectName,
-    price: proj.priceMax ?? 0.00,
-    maxPrice: proj.priceMax ?? 0.00,
-    minPrice: proj.priceMin ?? 0.00,
-    status: true 
-  }));
+  await Promise.all(promises);
 }
 
-/**
- * 获取所有项目列表 (用于价格配置)
- */
-async function fetchProjects() {
-  projectLoading.value = true;
-  try {
-    const res = await getProjectLis({ pageSize: -1 });
-    allProjects.value = res.data.records || [];
-  } catch (error) {
-    ElMessage.error('获取项目列表失败');
-    console.error(error);
-  } finally {
-    projectLoading.value = false;
-  }
-}
+// 移除：fetchProjects 函数
 
-// =========== [NEW] 新增获取价格模板的方法 ===========
 /**
  * 获取所有价格模板
  */
@@ -535,45 +561,10 @@ async function fetchPriceTemplates() {
     priceTemplates.value = res.data || [];
   } catch (error) {
     ElMessage.error('获取价格模板列表失败');
-    console.error(error);
   } finally {
     templatesLoading.value = false;
   }
 }
-
-/**
- * [NEW] 应用选中的价格模板
- * @param {number} templateId - 选中的模板ID
- */
-function applySelectedTemplate(templateId) {
-  if (!templateId) return; // 如果清空选择，则不执行任何操作
-
-  const selectedTemplate = priceTemplates.value.find(t => t.id === templateId);
-  if (!selectedTemplate || !selectedTemplate.items) {
-    ElMessage.error('未找到模板或模板数据格式不正确');
-    return;
-  }
-
-  // 使用Map进行高效查找，键为 "projectId-lineId"
-  const priceMap = new Map(selectedTemplate.items.map(item => [`${item.projectId}-${item.lineId}`, item.price]));
-
-  let appliedCount = 0;
-  // 遍历当前表单中的项目，应用模板价格
-  addForm.value.projectPrices.forEach(project => {
-    const key = `${project.projectId}-${project.lineId}`;
-    if (priceMap.has(key)) {
-      project.price = priceMap.get(key);
-      appliedCount++;
-    }
-  });
-
-  if (appliedCount > 0) {
-    ElMessage.success(`模板 "${selectedTemplate.name}" 已应用，更新了 ${appliedCount} 个项目价格。`);
-  } else {
-    ElMessage.warning(`模板 "${selectedTemplate.name}" 中的项目与当前列表不匹配。`);
-  }
-}
-// ====================================================
 
 async function handleAddSubmit() {
   if (!addFormRef.value) return;
@@ -581,7 +572,6 @@ async function handleAddSubmit() {
     if (valid) {
       addSubmitLoading.value = true;
       try {
-        // 保存一下当前的密码，因为提交后可能会清空表单
         const currentPassword = addForm.value.password;
         const currentUsername = addForm.value.username;
 
@@ -591,24 +581,18 @@ async function handleAddSubmit() {
           initialBalance: addForm.value.initialBalance,
           isAgent: addForm.value.isAgent,
           parentId: addForm.value.parentId,
-          projectPrices: addForm.value.projectPrices.map(p => ({
-            projectId: p.projectId,
-            lineId: p.lineId, 
-            price: p.price,
-            status: p.status
-          }))
+          templateId: addForm.value.templateId,
+          blacklistedProjects: addForm.value.blacklistedProjects
         };
         
-        const eee = await createUser(payload);
-        if (!eee || eee.ok === false) {
-          throw new Error(eee?.message || '新增用户失败');
+        const res = await createUser(payload);
+        if (!res || res.ok === false) {
+           throw new Error(res?.message || '新增用户失败');
         }
         
-        // --- 成功后调用复制弹窗逻辑 ---
-        addDialogVisible.value = false; // 先关闭输入框
-        await getUserList(); // 刷新列表
+        addDialogVisible.value = false; 
+        await getUserList(); 
         
-        // 弹出复制框 (关键修改)
         handleCopyAndAlert(currentUsername, currentPassword);
 
       } catch (error) {
@@ -623,46 +607,32 @@ async function handleAddSubmit() {
   });
 }
 
-/**
- * 关闭并重置新增用户表单
- */
 function closeAddDialog() {
   if (addFormRef.value) {
     addFormRef.value.resetFields();
   }
   addForm.value = getInitialAddForm();
-  // =========== [MODIFIED] 重置模板选择 ===========
-  selectedTemplateId.value = null; 
+  previewPrices.value = []; 
+  addSearchKeyword.value = ''; // 清空搜索
 }
 
-/**
- * 打开编辑用户弹窗
- */
+
 function openEditDialog(user) {
   currentUser.value = { ...user };
   editDialogVisible.value = true;
 }
 
-/**
- * 打开账单记录弹窗
- */
 function openRecordDialog(user) {
   currentUser.value = { ...user };
   recordDialogVisible.value = true;
 }
 
-/**
- * 打开充值/扣款弹窗
- */
 function openFundDialog(user, actionType) {
   currentUser.value = { ...user };
   fundForm.value.action = actionType;
   fundDialogVisible.value = true;
 }
 
-/**
- * 处理充值/扣款提交
- */
 async function handleFundSubmit() {
   if (!fundFormRef.value) return;
   await fundFormRef.value.validate(async (valid) => {
@@ -697,9 +667,6 @@ async function handleFundSubmit() {
   });
 }
 
-/**
- * 重置充值/扣款表单
- */
 function resetFundForm() {
     if (fundFormRef.value) {
         fundFormRef.value.resetFields();
@@ -707,9 +674,6 @@ function resetFundForm() {
     fundForm.value.amount = undefined;
 }
 
-/**
- * 切换用户代理状态
- */
 async function toggleAgent(row) {
   const newStatusText = row.isAgent === 1 ? '开启' : '关闭';
   try {
@@ -732,9 +696,6 @@ async function toggleAgent(row) {
   }
 }
 
-/**
- * 删除用户
- */
 function deleteByUser(user) {
   ElMessageBox.confirm(`此操作将永久删除用户 [${user.userName}]，是否继续？`, '警告', {
     confirmButtonText: '确定删除',
@@ -776,5 +737,12 @@ onMounted(getUserList);
   display: flex;
   justify-content: center;
   margin-top: 20px;
+}
+.text-gray {
+  color: #909399;
+}
+/* 新增：表格内按钮间距微调 */
+:deep(.el-table .cell) {
+  padding: 0 8px;
 }
 </style>

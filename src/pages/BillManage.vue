@@ -159,7 +159,8 @@ const fundTypeOptions = ref([
   { value: 1, label: '代理充值' },
   { value: 2, label: '代理扣款' },
   { value: 4, label: '代理回款' },
-  { value: 3, label: '管理员操作' }
+  { value: 3, label: '管理员操作' },
+  { value: 5, label: '超时退款' }
 ]);
 
 const fundTypeMap = {
@@ -167,7 +168,8 @@ const fundTypeMap = {
   1: '代理充值',
   2: '代理扣款',
   4: '代理回款',
-  3: '管理员操作'
+  3: '管理员操作',
+  5: '超时退款'
 };
 
 const query = reactive({

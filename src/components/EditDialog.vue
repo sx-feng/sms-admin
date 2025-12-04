@@ -1,7 +1,7 @@
 <template>
-  <el-dialog v-model="visible" title="编辑用户" width="850px" @close="onClose" destroy-on-close>
-    <el-form v-if="visible" :model="form" :rules="rules" ref="formRef" label-width="90px">
-      <!-- 基本信息 -->
+  <el-dialog v-model="visible" title="编辑用户" width="800px" @close="onClose" destroy-on-close>
+    <el-form v-if="visible" :model="form" :rules="rules" ref="formRef" label-width="110px">
+      <!-- 基本信息 (保持不变) -->
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="用户名" prop="userName">
@@ -9,119 +9,143 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-            <el-form-item label="新密码" prop="password">
-              <el-input v-model="form.password" placeholder="留空则不修改"/>
-            </el-form-item>
+          <el-form-item label="新密码" prop="password">
+            <el-input v-model="form.password" placeholder="留空则不修改" show-password />
+          </el-form-item>
         </el-col>
       </el-row>
 
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="确认密码" prop="confirmPassword">
-            <el-input v-model="form.confirmPassword" placeholder="再次输入新密码" />
+            <el-input v-model="form.confirmPassword" placeholder="再次输入新密码" show-password />
           </el-form-item>
         </el-col>
-<el-col >
-  <el-form-item label="用户状态">
-    <el-button-group>
-      <el-button 
-        :type="form.status === 0 ? 'success' : ''" 
-        @click="form.status = 0"
-      >
-        启用
-      </el-button>
-      <el-button 
-        :type="form.status === 1 ? 'danger' : ''" 
-        @click="form.status = 1"
-      >
-        禁用
-      </el-button>
-    </el-button-group>
-  </el-form-item>
-</el-col>
-        <el-col :span="6">
-            <el-form-item label="代理权限">
-              <el-switch v-model="form.isAgent" :active-value="1" :inactive-value="0" />
-            </el-form-item>
+        <el-col :span="12">
+          <el-form-item label="代理权限">
+            <el-switch v-model="form.isAgent" :active-value="1" :inactive-value="0" active-text="是" inactive-text="否" />
+          </el-form-item>
         </el-col>
       </el-row>
-      
-      <!-- 项目价格配置区域 -->
-      <el-divider>项目价格配置</el-divider>
 
-      <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 10px;">
-        <el-select
-          v-model="selectedTemplateId"
-          placeholder="选择模板批量修改售价"
-          clearable
-          style="width: 250px;"
-          @change="applySelectedTemplate"
-          :loading="templatesLoading"
+      <el-form-item label="用户状态">
+        <el-radio-group v-model="form.status">
+          <el-radio :label="0">正常启用</el-radio>
+          <el-radio :label="1">禁用账户</el-radio>
+        </el-radio-group>
+      </el-form-item>
+
+      <!-- 项目配置区域 -->
+      <el-divider>项目与价格配置</el-divider>
+
+      <!-- 价格模板选择 -->
+      <el-form-item label="价格模板" prop="templateId">
+        <el-select 
+          v-model="form.templateId" 
+          placeholder="请选择价格模板" 
+          clearable 
+          filterable 
+          style="width: 100%;"
+          :loading="dataLoading"
         >
-          <el-option
-            v-for="template in priceTemplates"
-            :key="template.id"
+          <el-option 
+            v-for="template in priceTemplates" 
+            :key="template.id" 
             :label="template.name"
-            :value="template.id"
+            :value="template.id" 
           />
         </el-select>
-        <span style="color: #909399; font-size: 12px;">将使用模板价格覆盖下方匹配的项目。</span>
-      </div>
+        <div style="font-size: 12px; color: #909399; margin-top: 5px;">
+          修改模板将重置下方列表。您可以针对特定项目进行禁用操作（加入黑名单）。
+        </div>
+      </el-form-item>
 
-      <!-- ==================== [MODIFIED] 更新表格列 ==================== -->
-      <el-table :data="projectPrices" border max-height="350px" v-loading="pricesLoading">
-        <el-table-column label="项目名称" prop="projectName" width="180" />
-        <el-table-column label="项目ID" prop="projectId" align="center" width="80"/>
-        <el-table-column label="线路ID" prop="lineId" align="center" width="80"/>
-        <!-- <el-table-column label="成本(元)" prop="costPrice" align="center" width="90"/> -->
-        <el-table-column label="最高售价(元)" prop="maxPrice" align="center" width="110"/>
-        <el-table-column label="最低售价(元)" prop="minPrice" align="center" width="110"/>
-        <el-table-column label="售价(元)" prop="price" min-width="150">
-          <template #default="{ row }">
-            <el-input-number
-              v-model="row.price"
-              :precision="2"
-              :step="0.1"
-              :min="0"
-              placeholder="设置售价"
-              style="width: 100%;"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" align="center" width="120">
-          <template #default="{ row }">
-            <el-switch
-              v-model="row.status"
-              active-text="启用"
-              inactive-text="禁用"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
-      <!-- ============================================================== -->
+      <!-- 表格区域：包含价格预览和黑名单操作 -->
+      <div v-if="form.templateId" style="padding: 0 20px 20px 20px;">
+        <!-- 增加一个搜索框，方便在列表中查找项目 -->
+        <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索项目ID..."
+            prefix-icon="Search"
+            style="width: 250px;"
+            clearable
+          />
+        </div>
+
+        <el-table 
+          :data="filteredPreviewPrices" 
+          border 
+          stripe 
+          size="small" 
+          height="350"
+          v-loading="previewLoading" 
+          empty-text="该模板暂无配置项"
+        >
+          <el-table-column prop="projectName" label="项目名称" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="projectId" label="项目ID" width="80" align="center" />
+          <el-table-column prop="lineId" label="线路" width="70" align="center" />
+          
+          <el-table-column prop="price" label="模板售价" width="90" align="center">
+            <template #default="{ row }">
+              <span style="color: #E6A23C; font-weight: bold;">{{ row.price }}</span>
+            </template>
+          </el-table-column>
+          
+          <!-- 新增：状态列 -->
+          <el-table-column label="当前用户项目权限" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="isBlacklisted(row)" type="danger" size="small" effect="dark">已禁用</el-tag>
+              <el-tag v-else type="success" size="small" effect="plain">正常</el-tag>
+            </template>
+          </el-table-column>
+
+          <!-- 新增：操作列 -->
+          <el-table-column label="操作" width="100" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                v-if="!isBlacklisted(row)"
+                type="danger" 
+                link 
+                size="small" 
+                @click="toggleBlacklist(row)"
+              >
+                加入黑名单
+              </el-button>
+              <el-button 
+                v-else
+                type="primary" 
+                link 
+                size="small" 
+                @click="toggleBlacklist(row)"
+              >
+                移除黑名单
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
     </el-form>
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="onCancel">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="onSave">保存修改</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-// ==================== [MODIFIED] 导入 getProjectLis ====================
-import { 
-  updateUser, 
-  getSubordinateUserProjectPrices, 
-  updateUserProjectPrice,
+import { Search } from '@element-plus/icons-vue' // 引入图标
+import {
+  updateUser,
   getAllPriceTemplates,
-  getProjectLis
-} from '@/api/admin.js'
-// ======================================================================
+  getUserConfigInfo,
+  getTemplateItems
+} from '@/api/admin.js' // 注意：这里移除了 getProjectLis，因为不再需要全量加载
 
 const emit = defineEmits(['update:modelValue', 'updated', 'close'])
 const props = defineProps({
@@ -132,8 +156,16 @@ const props = defineProps({
 const visible = ref(false)
 const formRef = ref()
 const saving = ref(false)
+const dataLoading = ref(false)
 
-// 用户基本信息表单
+const previewPrices = ref([])
+const previewLoading = ref(false)
+const priceTemplates = ref([])
+// const allProjects = ref([]) // 移除：不再需要加载全量项目列表
+
+// 本地搜索关键词
+const searchKeyword = ref('')
+
 const form = reactive({
   id: '',
   userName: '',
@@ -141,32 +173,13 @@ const form = reactive({
   confirmPassword: '',
   status: 0,
   isAgent: 0,
+  templateId: null,
+  blacklistedProjects: [] // 存储格式 ['projectId-lineId', ...]
 })
 
-// 项目价格配置相关状态
-const projectPrices = ref([])
-const pricesLoading = ref(false)
-
-// 价格模板相关状态
-const priceTemplates = ref([])
-const templatesLoading = ref(false)
-const selectedTemplateId = ref(null)
-
-// 表单校验规则 (保持不变)
 const rules = reactive({
   userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  // password: [
-  //   {
-  //     validator: (rule, value, callback) => {
-  //       if (value && value.length < 6) {
-  //         callback(new Error('密码长度至少为 6 位'))
-  //       } else {
-  //         callback()
-  //       }
-  //     },
-  //     trigger: 'blur'
-  //   }
-  // ],
+  templateId: [{ required: true, message: '请选择一个价格模板', trigger: 'change' }],
   confirmPassword: [
     {
       validator: (rule, value, callback) => {
@@ -183,19 +196,44 @@ const rules = reactive({
   ],
 })
 
+// 计算属性：前端过滤表格数据
+const filteredPreviewPrices = computed(() => {
+  if (!searchKeyword.value) return previewPrices.value
+  const kw = searchKeyword.value.toLowerCase()
+  return previewPrices.value.filter(item => {
+    return (
+      (item.projectName && item.projectName.toLowerCase().includes(kw)) ||
+      String(item.projectId).includes(kw) ||
+      String(item.lineId).includes(kw)
+    )
+  })
+})
 
-// 监听 user prop 变化，重置表单并加载数据
+// 监听模板ID变化，加载预览数据
+watch(() => form.templateId, async (newVal) => {
+  if (newVal) {
+    previewLoading.value = true
+    try {
+      const res = await getTemplateItems(newVal)
+      previewPrices.value = res.data || []
+    } catch (e) {
+      console.error(e)
+      previewPrices.value = []
+    } finally {
+      previewLoading.value = false
+    }
+  } else {
+    previewPrices.value = []
+  }
+})
+
 watch(() => props.user, (newUser) => {
   if (newUser && newUser.id) {
     resetForm(newUser)
-    // ==================== [MODIFIED] 更新数据加载逻辑 ====================
     loadInitialData(newUser.id)
-    // ======================================================================
   }
 }, { immediate: true, deep: true })
 
-
-// 监听 v-model 的变化
 watch(() => props.modelValue, (v) => {
   visible.value = v
 }, { immediate: true })
@@ -204,9 +242,11 @@ watch(visible, (v) => {
   if (v !== props.modelValue) {
     emit('update:modelValue', v)
   }
+  if (!v) {
+    searchKeyword.value = '' // 关闭时清空搜索
+  }
 })
 
-// 封装表单重置逻辑
 function resetForm(user) {
   form.id = user.id ?? ''
   form.userName = user.userName ?? ''
@@ -214,167 +254,94 @@ function resetForm(user) {
   form.isAgent = user.isAgent ?? 0
   form.password = ''
   form.confirmPassword = ''
-  projectPrices.value = []
-  selectedTemplateId.value = null
+  form.templateId = user.templateId || null
+  form.blacklistedProjects = []
+  searchKeyword.value = ''
 }
 
-// ==================== [NEW] 统一的数据加载入口 ====================
-/**
- * 加载所有初始化数据：用户价格、全局项目、价格模板
- * @param {number} userId 
- */
+// 辅助函数：判断行是否在黑名单中
+function isBlacklisted(row) {
+  const key = `${row.projectId}-${row.lineId}`
+  return form.blacklistedProjects.includes(key)
+}
+
+// 核心逻辑：切换黑名单状态
+function toggleBlacklist(row) {
+  const key = `${row.projectId}-${row.lineId}`
+  const index = form.blacklistedProjects.indexOf(key)
+  
+  if (index > -1) {
+    // 存在 -> 移除 (解禁)
+    form.blacklistedProjects.splice(index, 1)
+  } else {
+    // 不存在 -> 添加 (禁用)
+    form.blacklistedProjects.push(key)
+  }
+}
+
 async function loadInitialData(userId) {
-  pricesLoading.value = true;
+  dataLoading.value = true
   try {
-    // 1. 并行发起所有必要的请求
-    const [userPricesRes, allProjectsRes, templatesRes] = await Promise.all([
-      getSubordinateUserProjectPrices(userId),
-      getProjectLis({ pageSize: -1 }), // 获取所有项目
-      getAllPriceTemplates()
-    ]);
+    // 移除 getProjectLis，减少一次网络请求，提高弹窗速度
+    const [templatesRes, userConfigRes] = await Promise.all([
+      getAllPriceTemplates(),
+      getUserConfigInfo({ userId: userId })
+    ])
 
-    const userPricesData = userPricesRes.data || [];
-    const allProjectsData = allProjectsRes.data.records || [];
-    priceTemplates.value = templatesRes.data || [];
+    priceTemplates.value = templatesRes.data || []
+    const config = userConfigRes.data || {}
 
-    // 2. 创建一个用户已有价格的 Map，用于快速查找
-    // Key: "projectId-lineId", Value: 用户的价格对象
-    const userPriceMap = new Map(
-      userPricesData.map(p => [`${p.projectId}-${p.lineId}`, p])
-    );
+    if (config.templateId) {
+      form.templateId = config.templateId
+    }
 
-    // 3. 遍历全局项目列表，生成最终的表格数据
-    projectPrices.value = allProjectsData.map(globalProject => {
-      const key = `${globalProject.projectId}-${globalProject.lineId}`;
-      const existingUserPrice = userPriceMap.get(key);
-
-     if (existingUserPrice) {
-        // --- 情况一：用户已存在该项目的配置 ---
-        return {
-          ...existingUserPrice,
-          projectName: globalProject.projectName,
-          price: existingUserPrice.agentPrice,
-          maxPrice: globalProject.priceMax,
-          minPrice: globalProject.priceMin,
-          costPrice: globalProject.costPrice,
-          // 【修改】确保 status 字段被正确赋值。使用 ?? true 作为兜底，防止数据库存了 null
-          status: existingUserPrice.status ?? true, 
-        };
-      } else {
-        // --- 情况二：用户不存在该项目的配置 ---
-        return {
-          id: null,
-          projectTableId: null,
-          projectId: globalProject.projectId,
-          lineId: globalProject.lineId,
-          projectName: globalProject.projectName,
-          costPrice: globalProject.costPrice,
-          maxPrice: globalProject.priceMax,
-          minPrice: globalProject.priceMin,
-          price: globalProject.priceMax,
-          // 【修改】为新增的默认配置项设置 status 为 true (启用)
-          status: true,
-        };
-      }
-    });
+    // 解析黑名单字符串
+    if (config.blacklist && typeof config.blacklist === 'string') {
+      form.blacklistedProjects = config.blacklist.split(',')
+    } else {
+      form.blacklistedProjects = []
+    }
 
   } catch (error) {
-    ElMessage.error('加载项目价格配置失败');
-    console.error("Data loading error:", error);
+    console.error('加载数据失败', error)
+    ElMessage.error('加载用户配置信息失败')
   } finally {
-    pricesLoading.value = false;
+    dataLoading.value = false
   }
 }
 
-// [逻辑不变] 应用选中的价格模板
-function applySelectedTemplate(templateId) {
-  if (!templateId) return;
-
-  const template = priceTemplates.value.find(t => t.id === templateId)
-  if (!template || !template.items) {
-    ElMessage.warning('模板数据无效')
-    return
-  }
-
-  const priceMap = new Map(template.items.map(item => [`${item.projectId}-${item.lineId}`, item.price]))
-  
-  let appliedCount = 0
-  projectPrices.value.forEach(proj => {
-    const key = `${proj.projectId}-${proj.lineId}`
-    if (priceMap.has(key)) {
-      proj.price = priceMap.get(key) // 直接更新价格
-      appliedCount++
-    }
-  })
-
-  if (appliedCount > 0) {
-    ElMessage.success(`成功应用模板，更新了 ${appliedCount} 个项目价格。`)
-  } else {
-    ElMessage.warning('模板中的项目与该用户的项目不匹配。')
-  }
-}
-
-// [逻辑不变] 保存操作
 async function onSave() {
   if (!formRef.value) return
   
   try {
-    await formRef.value.validate() // 仅校验基本信息表单
-
+    await formRef.value.validate()
     saving.value = true
 
-    // 1. 准备更新用户基本信息的 Payload
     const userPayload = {
       id: form.id,
       username: form.userName,
       status: form.status,
-      isAgent: form.isAgent === 1 ? true : false,
+      isAgent: form.isAgent === 1,
+      templateId: form.templateId,
+      blacklistedProjects: form.blacklistedProjects // 后端接收List<String>
     }
+    
     if (form.password) {
       userPayload.password = form.password
     }
 
-    // 2. 准备更新用户价格配置的 Payload
-    const pricesPayload = {
-      userId: form.id,
-      userName: form.userName,
-      projectPrices: projectPrices.value.map(p => ({
-        id: p.id,
-        price: p.price,
-        userProjectLineTableId: p.projectTableId,
-        projectName: p.projectName,
-        projectId: p.projectId,
-        lineId: p.lineId,
-        costPrice: p.costPrice,
-        maxPrice: p.maxPrice,
-        minPrice: p.minPrice,
-        status: p.status, 
-      }))
-    }
+    const res = await updateUser(userPayload)
 
-    // 3. 并行发起两个更新请求
-    const [userResult, priceResult] = await Promise.all([
-      updateUser(userPayload),
-      updateUserProjectPrice(pricesPayload)
-    ])
-
-    const userSuccess = userResult && (userResult.code === 200 || userResult.ok)
-    const priceSuccess = priceResult && (priceResult.code === 200 || priceResult.ok)
-
-    if (userSuccess && priceSuccess) {
-      ElMessage.success('用户信息和价格配置均已保存')
+    if (res && (res.code === 200 || res.ok)) {
+      ElMessage.success('用户信息更新成功')
       emit('updated')
       visible.value = false
     } else {
-      const errorMessages = []
-      if (!userSuccess) errorMessages.push(`用户信息保存失败: ${userResult?.message || '未知错误'}`)
-      if (!priceSuccess) errorMessages.push(`价格配置保存失败: ${priceResult?.message || '未知错误'}`)
-      ElMessage.error(errorMessages.join('; '))
+      ElMessage.error(res?.message || '更新失败')
     }
 
-  } catch (validationError) {
-    ElMessage.warning('请检查表单输入项')
-    console.log('Form validation failed:', validationError)
+  } catch (e) {
+    console.error(e)
   } finally {
     saving.value = false
   }
@@ -387,3 +354,13 @@ function onClose() {
   emit('close')
 }
 </script>
+
+<style scoped>
+.dialog-footer {
+  text-align: right;
+}
+/* 可选：让表格内的按钮更紧凑 */
+:deep(.el-table .cell) {
+  padding: 0 8px;
+}
+</style>

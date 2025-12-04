@@ -177,7 +177,7 @@ const shortcuts = [
   // { label: '日志查看', path: '/errorlogs', icon: Document },
   { label: '号码管理', path: '/usernumbermanage', icon: TrendCharts },
   { label: '账单管理', path: '/billManage', icon: TrendCharts },
-  { label: '用户项目线路', path: '/userProjectLine', icon: Menu },
+  // { label: '用户项目线路', path: '/userProjectLine', icon: Menu },
   { label: '数据报表', path: '/dataReport', icon: TrendCharts },
   { label: '项目价格模板', path: '/projectPriceTemplate', icon: TrendCharts },
   { label: '用户取号线路统计', path: '/userProjectLineStates', icon: TrendCharts }

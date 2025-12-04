@@ -342,3 +342,11 @@ export function getAllAgents() {
  */
 export const getUserLineStats = (params) => request(1, '/api/admin/stats/user-line', params);
 
+
+
+export const getUserConfigInfo = (params) =>  request(0,'/api/admin/user/config-info',params, true);
+
+// [新增] 获取模板详情（包含所有价格项）
+export const getTemplateItems = (templateId) => {
+  return request(0, `/api/admin/price-templates/${templateId}/items`)
+}
