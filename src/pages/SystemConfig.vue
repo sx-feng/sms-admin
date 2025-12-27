@@ -51,67 +51,15 @@
       
       <!-- 条件渲染：只有当开启号码筛选时，才显示以下详细配置 -->
       <div v-if="config.enableNumberFiltering" class="api-config-group">
-        <!-- <el-form-item label="筛选API的URL">
-          <el-input v-model="config.filterApiUrl" placeholder="请输入筛选API的完整请求地址" />
-        </el-form-item> -->
-
         <el-form-item label="筛选API的密钥">
-          <el-input v-model="config.filterApiKey" placeholder="请输入授权密钥(Key)或卡密" show-password />
+          <el-input v-model="config.filterApiKey" placeholder="请输入授权密钥(Key)或卡密"/>
         </el-form-item>
-
-        <!-- <el-form-item label="请求方法">
-          <el-select v-model="config.selectNumberApiRouteMethod" placeholder="请选择API请求方法">
-            <el-option label="GET" value="GET" />
-            <el-option label="POST" value="POST" />
-          </el-select>
-        </el-form-item> -->
-
-        <!-- <el-form-item label="请求参数类型">
-           <template #label>
-            <span>请求参数类型</span>
-            <el-tooltip placement="top">
-              <template #content>
-                - PARAM: 参数将以 a=1&b=2 的形式附加到URL或表单中<br/>
-                - JSON: 参数将以 JSON 格式放在请求体中发送
-              </template>
-              <el-icon><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </template>
-          <el-select v-model="config.selectNumberApiReauestType" placeholder="请选择参数类型">
-            <el-option 
-              v-for="item in requestTypeOptions" 
-              :key="item.value" 
-              :label="item.label" 
-              :value="item.value" 
-            />
-          </el-select>
-        </el-form-item> -->
-
-        <!-- <el-form-item label="请求字段/值">
-          <template #label>
-            <span>请求字段/值</span>
-            <el-tooltip content="根据上方选择的参数类型，填写对应的参数内容。例如，JSON类型可填写：{'phone':'%s'}" placement="top">
-              <el-icon><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </template>
-          <el-input 
-            v-model="config.selectNumberApiReauestValue" 
-            type="textarea"
-            :rows="3"
-            placeholder="请输入请求的参数，可使用 %s 作为手机号占位符" 
-          />
-        </el-form-item> -->
-
-        <!-- <el-form-item label="响应解析字段">
-           <template #label>
-            <span>响应解析字段</span>
-            <el-tooltip content="指定从API返回的JSON数据中，哪个字段代表筛选结果。例如：data.status" placement="top">
-              <el-icon><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </template>
-          <el-input v-model="config.responseSelectNumberApiField" placeholder="例如：data.status" />
-        </el-form-item> -->
       </div>
+      <el-form-item label="用户能够删除几天前的数据(账单和号码记录通用)">
+          <el-input-number v-model="config.userDeleteDataDay" placeholder="输入天数" :min="1"/>
+      </el-form-item>
+
+    
 
       <!-- ==================== 操作按钮 ==================== -->
       <el-form-item>

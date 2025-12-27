@@ -32,11 +32,15 @@
           <el-tag type="info" v-else>禁用</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="250" fixed="right">
+      <el-table-column label="操作" fixed="right">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="openDialog(row)">编辑</el-button>
           <el-button size="small" type="success" @click="copyProject(row)">复制</el-button>
           <el-button size="small" type="danger" @click="deleteProject(row.id)">删除</el-button>
+          <el-button size="small" type="info" :loading="row.loading" @click="reactProjectLogin(row)">
+            重置token
+          </el-button>
+
         </template>
       </el-table-column>
     </el-table>
@@ -65,40 +69,40 @@
           </el-row>
         </template>
 
-        <div v-if="!form.specialApiStatus">
-        <!-- 2. API 配置区域 (手动放置，移出循环) -->
+        <div v-if="!form.specialApiStatus && !form.aesSpecialApiStatus">
+          <!-- 2. API 配置区域 (手动放置，移出循环) -->
 
-        <!-- 登录接口 -->
-        <el-divider>核心接口配置</el-divider>
-        <div class="api-section-title">1. 登录接口 (获取Token)</div>
-        <div class="step-container">
-          <el-alert title="提取变量建议: 将 Token 提取为变量名 token，如果不需要登录可以不设置(该项为空)" type="success" :closable="false"
-            style="margin-bottom:10px;" />
-          <ApiRequestEditor v-model="form.loginConfig" />
-        </div>
+          <!-- 登录接口 -->
+          <el-divider>核心接口配置</el-divider>
+          <div class="api-section-title">1. 登录接口 (获取Token)</div>
+          <div class="step-container">
+            <el-alert title="提取变量建议: 将 Token 提取为变量名 token，如果不需要登录可以不设置(该项为空)" type="success" :closable="false"
+              style="margin-bottom:10px;" />
+            <ApiRequestEditor v-model="form.loginConfig" />
+          </div>
 
-        <!-- 获取手机号 -->
-        <div class="api-section-title" style="margin-top: 20px;">2. 获取手机号</div>
-        <div class="step-container">
-          <el-alert title="使用变量: {{token}} | 提取建议: 将手机号提取为 phone，将手机号唯一id提取为 id" type="warning" :closable="false"
-            style="margin-bottom:10px;" />
-          <ApiRequestEditor v-model="form.getNumberConfig" />
-        </div>
+          <!-- 获取手机号 -->
+          <div class="api-section-title" style="margin-top: 20px;">2. 获取手机号</div>
+          <div class="step-container">
+            <el-alert title="使用变量: {{token}} | 提取建议: 将手机号提取为 phone，将手机号唯一id提取为 id" type="warning" :closable="false"
+              style="margin-bottom:10px;" />
+            <ApiRequestEditor v-model="form.getNumberConfig" />
+          </div>
 
-        <!-- 获取验证码 -->
-        <div class="api-section-title" style="margin-top: 20px;">3. 获取验证码</div>
-        <div class="step-container">
-          <el-alert title="使用变量: {{token}}, {{phone}}或者{{ id }} | 验证码提取为code" type="error" :closable="false"
-            style="margin-bottom:10px;" />
-          <ApiRequestEditor v-model="form.getCodeConfig" />
-        </div>
+          <!-- 获取验证码 -->
+          <div class="api-section-title" style="margin-top: 20px;">3. 获取验证码</div>
+          <div class="step-container">
+            <el-alert title="使用变量: {{token}}, {{phone}}或者{{ id }} | 验证码提取为code" type="error" :closable="false"
+              style="margin-bottom:10px;" />
+            <ApiRequestEditor v-model="form.getCodeConfig" />
+          </div>
 
-        <!-- 查询余额 -->
-        <div class="api-section-title" style="margin-top: 20px;">4. 查询项目余额</div>
-        <div class="step-container">
-          <el-alert title="使用变量: {{token}}, {{phone}}" type="info" :closable="false" style="margin-bottom:10px;" />
-          <ApiRequestEditor v-model="form.getBalanceConfig" />
-        </div>
+          <!-- 查询余额 -->
+          <div class="api-section-title" style="margin-top: 20px;">4. 查询项目余额</div>
+          <div class="step-container">
+            <el-alert title="使用变量: {{token}}, {{phone}}" type="info" :closable="false" style="margin-bottom:10px;" />
+            <ApiRequestEditor v-model="form.getBalanceConfig" />
+          </div>
         </div>
 
       </el-form>
@@ -112,11 +116,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed ,watch} from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import PaginationBar from '@/components/PaginationBar.vue'
 import ApiRequestEditor from '@/components/ApiRequestEditor.vue' // 确保引用路径正确
-import { getProjectLis, pageAdd, pageUpdate, pageDelete } from '@/api/admin'
+import { getProjectLis, pageAdd, pageUpdate, pageDelete, projectLogin } from '@/api/admin'
 
 // ===================================
 // 常量定义
@@ -210,7 +214,8 @@ const formConfig = computed(() => [
       { modelKey: 'lineId', label: '线路ID', component: 'el-input', props: { placeholder: '同一项目下不同API线路' } },
       { modelKey: 'lineName', label: '线路名称', component: 'el-input', props: { placeholder: '同一项目下不同API线路名称' } },
       { modelKey: 'domain', label: '服务域名', component: 'el-input', props: { placeholder: 'https://api.example.com，用于展示时区别' } },
-      { modelKey: 'projectInfo', label: '项目描述信息', component: 'el-input', props: { type: 'textarea', rows: 3, placeholder: '简要描述该项目使用的接口文档' } }
+      { modelKey: 'projectInfo', label: '项目描述信息', component: 'el-input', props: { type: 'textarea', rows: 3, placeholder: '简要描述该项目使用的接口文档' } },
+      { modelKey: 'status', label: '项目状态', component: 'el-switch', props: { activeText: "启用", inactiveText: "禁用" } }
     ]
   },
   {
@@ -222,23 +227,31 @@ const formConfig = computed(() => [
       // { modelKey: 'codeMaxAttempts', label: '最大尝试次数', component: 'el-input-number', props: { min: 1, controlsPosition: 'right' } }
     ]
   },
-  {
-    title: '其他设置',
-    fields: [
-      { modelKey: 'status', label: '项目状态', component: 'el-switch', props: { activeText: "启用", inactiveText: "禁用" } }
-    ]
-  },
+  // {
+  //   title: '其他设置',
+  //   fields: [
+
+  //   ]
+  // },
   {
     title: '特定API设置-MMAPI：对当前项目使用MMAPI，接口配置将无效',
     fields: [
       { modelKey: 'specialApiStatus', label: '是否启用-MMAPI', component: 'el-switch', props: { activeText: "启用", inactiveText: "禁用" } },
       { modelKey: 'specialApiDelay', label: '请求延时(秒)', component: 'el-input-number', props: { min: 0, precision: 0, controlsPosition: 'right', placeholder: '单位：秒，建议30秒' } },
-      {modelKey: 'specialApiGetCodeOutTime', label: '获取验证码请求超时时间(秒)', component: 'el-input-number', props: { min: 30, precision: 0, controlsPosition: 'right', placeholder: '单位：秒，建议150秒' } },
+      { modelKey: 'specialApiGetCodeOutTime', label: '获取验证码请求超时时间(秒)', component: 'el-input-number', props: { min: 30, precision: 0, controlsPosition: 'right', placeholder: '单位：秒，建议150秒' } },
       { modelKey: 'specialApiToken', label: '请求Token', component: 'el-input', props: { placeholder: '例如：815BA9C64F8B7C43' } },
     ]
   },
-
-
+  {
+    title: '特定加解密API设置-AESAPI：对当前项目使用AESAPI，接口配置将无效',
+    fields: [
+      { modelKey: 'aesSpecialApiStatus', label: '是否启用-AESAPI', component: 'el-switch', props: { activeText: "启用", inactiveText: "禁用" } },
+      { modelKey: 'aesSpecialApiGateway', label: '请求域名', component: 'el-input', props: {  placeholder: '请求域名' } },
+      { modelKey: 'aesSpecialApiOutNumber', label: '客户外部数字', component: 'el-input', props: {  placeholder: '客户外部数字' } },
+      { modelKey: 'aesSpecialApiKey', label: '客户加密key', component: 'el-input', props: { placeholder: '客户加密key' } },
+      { modelKey: 'aesSpecialApiProjectName', label: '接口项目名称', component: 'el-input', props: { placeholder: '接口项目名称' } },
+    ]
+  },
   {
     title: '号码筛选配置 (可选)',
     fields: [
@@ -270,6 +283,44 @@ function openDialog(row = null) {
   }
   dialogVisible.value = true
 }
+// 重置token
+async function reactProjectLogin(row) {
+  // 1. 开启 loading 状态（此时按钮会自动禁用）
+  row.loading = true;
+
+  try {
+    const newProject = JSON.parse(JSON.stringify(row));
+    const res = await projectLogin(newProject.projectId, newProject.lineId);
+
+    if (res.code != 400) {
+      ElMessage.success("重置成功：" + res.data);
+    } else {
+      ElMessage.error("重置失败：" + res.message);
+    }
+  } catch (err) {
+    console.error(err);
+    ElMessage.error('项目重置token失败');
+  } finally {
+    // 2. 无论成功还是失败，最后都要关闭 loading 状态
+    row.loading = false;
+  }
+}
+
+// 监听 MMAPI 状态
+watch(() => form.value.specialApiStatus, (newVal) => {
+  if (newVal) {
+    // 如果开启了 MMAPI，则自动关闭 AESAPI
+    form.value.aesSpecialApiStatus = false
+  }
+})
+
+// 监听 AESAPI 状态
+watch(() => form.value.aesSpecialApiStatus, (newVal) => {
+  if (newVal) {
+    // 如果开启了 AESAPI，则自动关闭 MMAPI
+    form.value.specialApiStatus = false
+  }
+})
 
 function copyProject(row) {
   const newProject = JSON.parse(JSON.stringify(row));

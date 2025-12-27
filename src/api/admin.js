@@ -350,3 +350,31 @@ export const getUserConfigInfo = (params) =>  request(0,'/api/admin/user/config-
 export const getTemplateItems = (templateId) => {
   return request(0, `/api/admin/price-templates/${templateId}/items`)
 }
+/**
+ * 手动触发项目登录
+  POST /api/admin/project/login
+  接口ID：385236692
+  接口地址：https://app.apifox.com/link/project/7230479/apis/api-385236692
+ */
+export const projectLogin = (projectId,lineId) =>{
+    return request(1,`/api/admin/project/login?projectId=${projectId}&lineId=${lineId}`)
+}
+
+/**
+ * 管理员：物理清理账本记录
+  POST /api/admin/ledger/clear-physical
+  接口ID：397821470
+  接口地址：https://app.apifox.com/link/project/7230479/apis/api-397821470
+ */
+export const clearLeader = (days,targetUserId)=>{
+    return request(1,`/api/admin/ledger/clear-physical?days=${days}&targetUserId=${targetUserId}`)
+}
+/**
+ * 管理员：物理清理号码记录
+  POST /api/admin/number/clear-physical
+  接口ID：397821471
+  接口地址：https://app.apifox.com/link/project/7230479/apis/api-397821471
+ */
+export const clearNumber = (days,targetUserId)=>{
+    return request(1,`/api/admin/number/clear-physical?days=${days}&targetUserId=${targetUserId}`)
+}

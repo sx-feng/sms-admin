@@ -55,6 +55,9 @@
         <el-button @click="handleReset">
           <el-icon><Refresh /></el-icon> 重置
         </el-button>
+        <el-button type="danger" plain @click="handleClearNumbers">
+    <el-icon><Delete /></el-icon> 清理历史
+  </el-button>
       </el-form-item>
     </el-form>
     </div>
@@ -123,19 +126,66 @@
       class="pagination"
     />
   </div>
+  <!-- 新增：清理对话框 -->
+<el-dialog
+  title="物理清理号码记录"
+  v-model="clearVisible"
+  width="420px"
+  destroy-on-close
+>
+  <el-alert
+    title="此操作将从数据库永久删除记录，无法找回！"
+    type="warning"
+    show-icon
+    :closable="false"
+    style="margin-bottom: 20px"
+  />
+  <el-form :model="clearForm" label-width="100px">
+    <el-form-item label="保留天数">
+      <el-input-number 
+        v-model="clearForm.days" 
+        :min="0" 
+        style="width: 100%"
+      />
+      <p style="color: #909399; font-size: 12px; margin-top: 5px;">
+        保留最近 X 天的数据，其余将被物理删除
+      </p>
+    </el-form-item>
+    <el-form-item label="指定用户ID">
+      <el-input 
+        v-model="clearForm.targetUserId" 
+        placeholder="选填，不填则清理全部用户" 
+        clearable
+      />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <el-button @click="clearVisible = false">取消</el-button>
+    <el-button type="danger" :loading="clearLoading" @click="submitClear">
+      立即清理
+    </el-button>
+  </template>
+</el-dialog>
 </template>
 
 <script setup>
 import { onMounted, ref, reactive } from 'vue';
-import { pageNumberList } from '@/api/admin'; // 确保你的API路径正确
-import { ElMessage } from 'element-plus';
-import { Search, Refresh } from '@element-plus/icons-vue';
+import { pageNumberList ,clearNumber} from '@/api/admin'; // 确保你的API路径正确
+import { ElMessage ,ElMessageBox} from 'element-plus';
+import { Search, Refresh ,Delete} from '@element-plus/icons-vue';
 
 // --- state ---
 const loading = ref(false);
 const recordList = ref([]);
 const total = ref(0);
 const queryForm = ref(null); // 用于表单重置
+
+const clearVisible = ref(false);
+const clearLoading = ref(false);
+const clearForm = reactive({
+  days: 30,         // 默认保留30天
+  targetUserId: ''  // 指定用户ID
+});
 
 // 查询参数
 const queryParams = reactive({
@@ -155,6 +205,53 @@ const queryParams = reactive({
 const dateRange = ref([]);
 
 // --- functions ---
+
+// --- 新增：清理号码记录逻辑 ---
+const handleClearNumbers = () => {
+  clearVisible.value = true;
+};
+
+const submitClear = async () => {
+  if (clearForm.days === null || clearForm.days === undefined) {
+    return ElMessage.warning('请输入保留天数');
+  }
+
+  try {
+    // 二次确认
+    await ElMessageBox.confirm(
+      `确定要执行物理清理吗？将删除 ${clearForm.days} 天前的号码记录，此操作不可恢复！`,
+      '严正警告',
+      {
+        confirmButtonText: '确定清理',
+        cancelButtonText: '取消',
+        type: 'error',
+        confirmButtonClass: 'el-button--danger'
+      }
+    );
+
+    clearLoading.value = true;
+    // 调用 api/admin.js 中的 clearNumber 接口
+    const res = await clearNumber(clearForm.days, clearForm.targetUserId);
+    
+    if (res?.code === 200) {
+      ElMessage.success('号码记录清理成功');
+      clearVisible.value = false;
+      loadRecords(); // 刷新表格
+    } else {
+      ElMessage.error(res?.message || '清理失败');
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error("Clear error:", error);
+      ElMessage.error('网络错误或操作失败');
+    }
+  } finally {
+    clearLoading.value = false;
+  }
+};
+
+
+
 async function loadRecords() {
   if (loading.value) return;
   loading.value = true;

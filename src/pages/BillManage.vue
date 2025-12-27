@@ -43,6 +43,7 @@
       </el-form-item>
       <el-form-item class="form-buttons">
         <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+        <el-button type="danger" :icon="Delete" plain @click="handleClearLedger">清理历史记录</el-button>
       </el-form-item>
     </el-form>
 
@@ -145,13 +146,47 @@
     </el-dialog>
 
   </div>
+  <el-dialog
+  title="物理清理账本记录"
+  v-model="clearDialogVisible"
+  width="400px"
+  destroy-on-close
+>
+  <el-form :model="clearForm" label-width="100px">
+    <el-form-item label="保留天数">
+      <el-input-number 
+        v-model="clearForm.days" 
+        :min="0" 
+        placeholder="例如: 30" 
+        style="width: 100%"
+      />
+      <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+        将删除该天数之前的所有数据
+      </div>
+    </el-form-item>
+    <el-form-item label="指定用户ID">
+      <el-input 
+        v-model="clearForm.targetUserId" 
+        placeholder="选填，不填则清理所有用户" 
+        clearable
+      />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <el-button @click="clearDialogVisible = false">取消</el-button>
+    <el-button type="danger" :loading="clearLoading" @click="submitClear">
+      立即执行清理
+    </el-button>
+  </template>
+</el-dialog>
 </template>
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue'
-import { pageAllLedger } from '@/api/admin.js'
-import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { pageAllLedger ,clearLeader } from '@/api/admin.js'
+import { ElMessage, ElMessageBox } from 'element-plus'
+
+import { Search,Delete } from '@element-plus/icons-vue'
 
 // 新增：定义与后端枚举匹配的资金类型选项和映射
 const fundTypeOptions = ref([
@@ -190,6 +225,16 @@ const total = ref(0)
 const loading = ref(false)
 const selectedRecord = ref(null)
 const dialogVisible = ref(false)
+
+
+// --- 新增：清理账本相关的变量 ---
+const clearDialogVisible = ref(false)
+const clearLoading = ref(false)
+const clearForm = reactive({
+  days: 30,        // 默认保留30天
+  targetUserId: '' // 指定用户ID，可选
+})
+
 
 // --- 数据加载 ---
 async function loadBillList() {
@@ -263,6 +308,51 @@ function formatAmount(row) {
 
 function getAmountColor(row) {
   return row.ledgerType === 1 ? '#67C23A' : '#F56C6C'
+}
+
+
+// --- 新增：清理账本逻辑 ---
+const handleClearLedger = () => {
+  clearDialogVisible.value = true
+}
+
+const submitClear = async () => {
+  if (clearForm.days === null || clearForm.days === undefined) {
+    return ElMessage.warning('请输入保留天数')
+  }
+
+  try {
+    // 二次确认，防止误操作
+    await ElMessageBox.confirm(
+      `确定要物理清理 ${clearForm.days} 天之前的账本记录吗？此操作不可逆！`,
+      '危险操作提示',
+      {
+        confirmButtonText: '确定清理',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
+
+    clearLoading.value = true
+    // 调用 api/admin.js 中的接口
+    const res = await clearLeader(clearForm.days, clearForm.targetUserId)
+    
+    if (res?.code === 200) {
+      ElMessage.success('账本清理成功')
+      clearDialogVisible.value = false
+      loadBillList() // 刷新列表
+    } else {
+      ElMessage.error(res?.message || '清理失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error("Clear error:", error)
+      ElMessage.error('清理操作失败')
+    }
+  } finally {
+    clearLoading.value = false
+  }
 }
 
 </script>
