@@ -103,6 +103,13 @@
             <el-alert title="使用变量: {{token}}, {{phone}}" type="info" :closable="false" style="margin-bottom:10px;" />
             <ApiRequestEditor v-model="form.getBalanceConfig" />
           </div>
+
+          <!-- 释放手机号 -->
+          <div class="api-section-title" style="margin-top: 20px;">5. 释放手机号</div>
+          <div class="step-container">
+            <el-alert title="使用变量: {{token}}, {{phone}}  ,{{releaseStatus}} :请求状态 ,{{releaseMsg}} ：请求信息" type="info" :closable="false" style="margin-bottom:10px;" />
+            <ApiRequestEditor v-model="form.deletePhoneConfig" />
+          </div>
         </div>
 
       </el-form>
@@ -178,12 +185,18 @@ const getDefaultForm = () => ({
   lineName: '默认线路',
   domain: '',
 
+  releaseSuccessStatus: '1',
+  releaseFailStatus: '0',
+  releaseSuccessMsg: 'ok',
+  releaseFailMsg: 'fail',
+
   // --- 核心API配置 (使用新结构) ---
   // 注意：这里必须初始化为对象，否则传入子组件 modelValue 会报错
   loginConfig: createApiConfig('POST'),
   getNumberConfig: createApiConfig('GET'),
   getCodeConfig: createApiConfig('GET'),
   getBalanceConfig: createApiConfig('GET'),
+  deletePhoneConfig: createApiConfig('POST'),
 
   // --- 业务逻辑 ---
   codeMaxAttempts: 10,
@@ -259,6 +272,15 @@ const formConfig = computed(() => [
       { modelKey: 'selectNumberApiRequestValue', label: '筛选API项目名称', component: 'el-input', props: { placeholder: '例如: dy/ks' } },
     ]
   },
+  {
+  title: '释放接口变量映射 (自定义 {{releaseStatus}} 和 {{releaseMsg}} 的值)',
+  fields: [
+    { modelKey: 'releaseSuccessStatus', label: '成功状态值', component: 'el-input', props: { placeholder: '例如: 1 或 success' } },
+    { modelKey: 'releaseFailStatus', label: '失败状态值', component: 'el-input', props: { placeholder: '例如: 0 或 fail' } },
+    { modelKey: 'releaseSuccessMsg', label: '成功描述文字', component: 'el-input', props: { placeholder: '例如: ok' } },
+    { modelKey: 'releaseFailMsg', label: '失败描述文字', component: 'el-input', props: { placeholder: '例如: timeout' } },
+  ]
+}
 ])
 
 // ===================================
@@ -275,6 +297,7 @@ function openDialog(row = null) {
     if (!rowData.getNumberConfig) rowData.getNumberConfig = createApiConfig('GET')
     if (!rowData.getCodeConfig) rowData.getCodeConfig = createApiConfig('GET')
     if (!rowData.getBalanceConfig) rowData.getBalanceConfig = createApiConfig('GET')
+    if(!rowData.deletePhoneConfig) rowData.deletePhoneConfig = createApiConfig('POST')
 
     form.value = rowData
   } else {
@@ -336,6 +359,7 @@ function copyProject(row) {
   if (!newProject.getNumberConfig) newProject.getNumberConfig = createApiConfig('GET')
   if (!newProject.getCodeConfig) newProject.getCodeConfig = createApiConfig('GET')
   if (!newProject.getBalanceConfig) newProject.getBalanceConfig = createApiConfig('GET')
+  if(!newProject.deletePhoneConfig) newProject.deletePhoneConfig = createApiConfig('POST')
 
   openDialog(newProject);
 }
