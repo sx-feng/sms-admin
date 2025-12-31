@@ -1,9 +1,9 @@
 // request.js
 
 import router from '../router'
-// const baseURL = 'http://192.168.110.104:8026';
+const baseURL = 'http://192.168.110.104:8026';
 // const baseURL = 'https://api.huikecode.com';
-const baseURL = 'https://api.daguicode.com';
+// const baseURL = 'https://api.daguicode.com';
 // const baseURL = 'https://api.meishicode.com';
 
 
