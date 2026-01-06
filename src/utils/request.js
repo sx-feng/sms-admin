@@ -8,6 +8,14 @@ const baseURL = 'https://api.daguicode.com';
 
 
 /**
+ * 不需要触发 401 强制跳转的接口白名单
+ */
+const WHITE_LIST_401 = [
+  '/api/admin/request/url',
+  // '/another/api/endpoint'
+];
+
+/**
  * 处理 401 跳转逻辑
  */
 function handleUnauthorized() {
@@ -16,6 +24,8 @@ function handleUnauthorized() {
       console.warn('路由跳转异常:', err)
   });
 }
+
+
 /**
  * 通用请求方法（强化版）
  * - 自动防止 JSON 解析错误
@@ -70,9 +80,22 @@ export async function request(methodFlag, url, jsonData = {}, isquery = false) {
       return { ok: false, code: 0, message: '返回数据不是 JSON 格式', data: text };
     }
     if (data.code === 400 || data.code === 401) {
-        console.warn('Token 失效，跳转登录页...');
-        handleUnauthorized();
-        return { ok: false, code: 401, message: data.message || '登录失效', data: null };
+        const isIgnored = WHITE_LIST_401.includes(url);
+        
+        if (!isIgnored) {
+            console.warn('Token 失效，跳转登录页...');
+            handleUnauthorized();
+        } else {
+            console.warn('接口 401 但已忽略跳转逻辑:', url);
+        }
+        
+        return { 
+          ok: false, 
+          code: 401,
+          message: data.message || '登录失效', 
+          raw: data ,
+          data: null 
+        };
     }
 
     // 统一返回
