@@ -250,9 +250,12 @@ const formConfig = computed(() => [
     title: '特定API设置-MMAPI：对当前项目使用MMAPI，接口配置将无效',
     fields: [
       { modelKey: 'specialApiStatus', label: '是否启用-MMAPI', component: 'el-switch', props: { activeText: "启用", inactiveText: "禁用" } },
+      { modelKey: 'specialApiHost', label: '请求地址', component: 'el-input', props: { placeholder: '例如：(为空默认)http://154.86.19.28:13588' } },
       { modelKey: 'specialApiDelay', label: '请求延时(秒)', component: 'el-input-number', props: { min: 0, precision: 0, controlsPosition: 'right', placeholder: '单位：秒，建议30秒' } },
       { modelKey: 'specialApiGetCodeOutTime', label: '获取验证码请求超时时间(秒)', component: 'el-input-number', props: { min: 30, precision: 0, controlsPosition: 'right', placeholder: '单位：秒，建议150秒' } },
       { modelKey: 'specialApiToken', label: '请求Token', component: 'el-input', props: { placeholder: '例如：815BA9C64F8B7C43' } },
+      
+      
     ]
   },
   {

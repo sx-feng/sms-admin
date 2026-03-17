@@ -29,13 +29,30 @@
         <el-switch v-model="config.enableBanMode" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
-      <el-form-item label="24小时最低回码率 (%)">
-        <el-input-number v-model="config.min24hCodeRate" :min="0" :max="100" :precision="2" :step="1" />
+      <el-form-item>
+        <template #label>
+          <span>风控时间窗口 (分钟)</span>
+          <el-tooltip content="计算回码率的时间范围，例如：1440表示计算近24小时的回码率" placement="top">
+            <el-icon><QuestionFilled /></el-icon>
+          </el-tooltip>
+        </template>
+        <el-input-number v-model="config.banCodeRateWindowMinutes" :min="1" :step="60" />
       </el-form-item>
 
-      <el-form-item label="余额封控下限 (元)">
-        <el-input-number v-model="config.balanceThreshold" :min="0" :precision="2" :step="1" />
+      <el-form-item>
+        <template #label>
+          <span>时间窗口内最低回码率 (%)</span>
+          <el-tooltip content="在上述设定的时间窗口内，如果用户的回码率低于此值将被封禁" placement="top">
+            <el-icon><QuestionFilled /></el-icon>
+          </el-tooltip>
+        </template>
+        <el-input-number v-model="config.minWindowCodeRate" :min="0" :max="100" :precision="2" :step="1" />
       </el-form-item>
+
+      <!-- <el-form-item label="余额封控下限 (元)">
+        <el-input-number v-model="config.balanceThreshold" :min="0" :precision="2" :step="1" />
+      </el-form-item> -->
+
 
       <!-- ==================== 号码筛选API配置 ==================== -->
       <el-divider content-position="left">号码筛选</el-divider>
@@ -82,7 +99,8 @@ const config = ref({
   systemNotice: '系统通知',
   // 封禁风控
   enableBanMode: 0,
-  min24hCodeRate: 0.0,
+  banCodeRateWindowMinutes: 1440, // 默认1440分钟(24小时)
+  minWindowCodeRate: 0.0, // 改为 minWindowCodeRate
   balanceThreshold: 0.00,
   // 号码筛选
   enableNumberFiltering: false, // 对应后端的 Boolean enableNumberFiltering
@@ -111,8 +129,8 @@ async function fetchConfig() {
     if (res.code === 200 && res.data) {
       Object.assign(config.value, res.data)
       
-      if (config.value.min24hCodeRate != null) {
-        config.value.min24hCodeRate = Number((config.value.min24hCodeRate * 100).toFixed(2))
+      if (config.value.minWindowCodeRate != null) {
+        config.value.minWindowCodeRate = Number((config.value.minWindowCodeRate * 100).toFixed(2))
       }
       ElMessage.success('配置加载成功')
     } else {
@@ -131,8 +149,8 @@ async function saveConfig() {
   saving.value = true
   const payload = JSON.parse(JSON.stringify(config.value))
   
-  if (payload.min24hCodeRate != null) {
-    payload.min24hCodeRate = payload.min24hCodeRate / 100
+  if (payload.minWindowCodeRate != null) {
+    payload.minWindowCodeRate = payload.minWindowCodeRate / 100
   }
   
   try {
